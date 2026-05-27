@@ -1,0 +1,65 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        bg: '#000000',
+        input: '#080808',
+        surface: 'rgba(0,255,136,0.04)',
+        'surface-h': 'rgba(0,255,136,0.08)',
+        border: 'rgba(0,255,136,0.12)',
+        'border-a': 'rgba(0,255,136,0.35)',
+        neon: '#00ff88',
+        'neon-2': '#00ffcc',
+        'neon-d': 'rgba(0,255,136,0.12)',
+        'blue-p': '#00ff88',
+        'blue-l': '#00ffcc',
+        'blue-ll': '#00ff88',
+        'blue-d': 'rgba(0,255,136,0.12)',
+        'green-s': '#22c55e',
+        'amber-s': '#fbbf24',
+        'tw': 'rgba(255,255,255,0.9)',
+        'tw-m': 'rgba(255,255,255,0.4)',
+        'tw-d': 'rgba(255,255,255,0.2)',
+      },
+      borderRadius: {
+        card: '16px', 'card-lg': '20px', btn: '14px',
+        inp: '12px', chip: '8px',
+      },
+      animation: {
+        shimmer: 'shimmer 3s infinite linear',
+        dot: 'dot 2.2s ease-in-out infinite',
+        'slide-in': 'slideIn 0.25s cubic-bezier(.16,1,.3,1) both',
+        'slide-back': 'slideBack 0.25s cubic-bezier(.16,1,.3,1) both',
+        'fade-up': 'fadeUp 0.22s ease both',
+        glare: 'glare 1.4s ease-out forwards',
+        'neon-pulse': 'neonPulse 3s ease-in-out infinite',
+        'glow-in': 'glowIn 0.45s cubic-bezier(.16,1,.3,1) both',
+        spin: 'spin 1s linear infinite',
+      },
+      keyframes: {
+        shimmer: { '0%': { transform: 'translateX(-150%)' }, '100%': { transform: 'translateX(250%)' } },
+        dot: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0.3' } },
+        slideIn: { from: { opacity: '0', transform: 'translateX(28px)' }, to: { opacity: '1', transform: 'none' } },
+        slideBack: { from: { opacity: '0', transform: 'translateX(-20px)' }, to: { opacity: '1', transform: 'none' } },
+        fadeUp: { from: { opacity: '0', transform: 'translateY(10px)' }, to: { opacity: '1', transform: 'none' } },
+        spin: { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } },
+        glare: {
+          '0%':   { transform: 'translateX(-100%) skewX(-15deg)', opacity: '0' },
+          '15%':  { opacity: '1' },
+          '100%': { transform: 'translateX(350%) skewX(-15deg)', opacity: '0' },
+        },
+        neonPulse: {
+          '0%,100%': { boxShadow: '0 0 8px rgba(0,255,136,0.35), 0 0 24px rgba(0,255,136,0.1)' },
+          '50%': { boxShadow: '0 0 20px rgba(0,255,136,0.65), 0 0 48px rgba(0,255,136,0.2)' },
+        },
+        glowIn: {
+          from: { opacity: '0', transform: 'translateY(16px)', filter: 'blur(6px)' },
+          to: { opacity: '1', transform: 'none', filter: 'blur(0)' },
+        },
+      },
+    },
+  },
+  plugins: [],
+}
