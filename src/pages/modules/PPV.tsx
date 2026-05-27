@@ -21,6 +21,9 @@ export default function PPV() {
   const [editPrice, setEditPrice] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
+  const [editMediaUrl, setEditMediaUrl] = useState<string | undefined>(undefined)
+  const [editMediaType, setEditMediaType] = useState<'photo' | 'video'>('photo')
   const [pendingMedia, setPendingMedia] = useState<{ url: string; type: 'photo' | 'video' } | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [addTitle, setAddTitle] = useState('')
@@ -59,12 +62,22 @@ export default function PPV() {
     setEditTitle(item.title)
     setEditDesc(item.description)
     setEditPrice(String(item.priceStars))
+    setEditMediaUrl(item.mediaUrl)
+    setEditMediaType(item.mediaType)
+  }
+
+  const handleEditMediaFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setEditMediaUrl(URL.createObjectURL(file))
+    setEditMediaType(file.type.startsWith('video') ? 'video' : 'photo')
+    e.target.value = ''
   }
 
   const saveEdit = () => {
     if (!editing) return
     setItems(items.map(i => i.id === editing.id
-      ? { ...i, title: editTitle, description: editDesc, priceStars: Number(editPrice) || i.priceStars }
+      ? { ...i, title: editTitle, description: editDesc, priceStars: Number(editPrice) || i.priceStars, mediaUrl: editMediaUrl, mediaType: editMediaType }
       : i
     ))
     setEditing(null)
@@ -174,6 +187,23 @@ export default function PPV() {
 
       {/* Edit item sheet */}
       <BottomSheet isOpen={!!editing} onClose={() => setEditing(null)} title="Редактировать">
+        <input ref={editFileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleEditMediaFile} />
+        <div className="relative rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.2)] bg-black flex items-center justify-center">
+          {editMediaUrl ? (
+            editMediaType === 'video'
+              ? <video src={editMediaUrl} className="max-w-full max-h-[45vh] w-auto h-auto" controls muted playsInline />
+              : <img src={editMediaUrl} className="max-w-full max-h-[45vh] w-auto h-auto block" alt="" />
+          ) : (
+            <div className="py-10 flex flex-col items-center gap-2 text-[rgba(255,255,255,0.2)]">
+              {editMediaType === 'video' ? <IconVideo size={32} color="rgba(0,255,136,0.2)" /> : <IconImage size={32} color="rgba(0,255,136,0.2)" />}
+              <p className="text-[12px]">Нет медиафайла</p>
+            </div>
+          )}
+          <button onClick={() => editFileInputRef.current?.click()}
+            className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-black/70 border border-[rgba(0,255,136,0.4)] text-[11px] font-bold text-[#00ff88] hover:bg-[rgba(0,255,136,0.15)] transition-all">
+            <IconUpload size={12} color="#00ff88" /> Сменить
+          </button>
+        </div>
         <Input label="Название" value={editTitle} onChange={setEditTitle} placeholder="Заголовок контента" />
         <Input label="Описание" value={editDesc} onChange={setEditDesc} textarea rows={3} placeholder="Описание под сообщением..." />
         <Input label="Цена (Stars ⭐)" value={editPrice} onChange={setEditPrice} type="number" placeholder="150" />
