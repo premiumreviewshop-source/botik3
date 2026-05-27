@@ -198,10 +198,9 @@ export default function CreateModel() {
       {/* Preview sheet — appears after generation */}
       <BottomSheet isOpen={showPreview} onClose={() => {}} title="Модель создана">
         {previewUrl && (
-          <div className="relative rounded-[16px] overflow-hidden border border-[rgba(0,255,136,0.25)]"
+          <div className="relative rounded-[16px] overflow-hidden border border-[rgba(0,255,136,0.25)] bg-black flex items-center justify-center"
             style={{ boxShadow: '0 0 20px rgba(0,255,136,0.08)' }}>
-            <img src={previewUrl} alt="Model preview" className="w-full aspect-[3/4] object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <img src={previewUrl} alt="Model preview" className="max-w-full max-h-[62vh] w-auto h-auto block" />
             <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88]" style={{ boxShadow: '0 0 5px rgba(0,255,136,1)' }} />
               <span className="text-[10px] font-black uppercase tracking-[1px] text-[#00ff88]">Сгенерировано</span>
