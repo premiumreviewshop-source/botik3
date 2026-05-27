@@ -42,8 +42,8 @@ export interface PPVItem {
   description: string
   priceStars: number
   mediaType: 'photo' | 'video'
+  mediaUrl?: string
   purchases: number
-  thumb?: string
 }
 
 export interface AIModel {

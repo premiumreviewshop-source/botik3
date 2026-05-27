@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconUpload, IconEdit, IconVideo, IconImage } from '../../components/Icons'
+import { IconBack, IconUpload, IconEdit, IconVideo, IconImage, IconPlus } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 import Input from '../../components/Input'
@@ -19,6 +19,40 @@ export default function PPV() {
   const [editTitle, setEditTitle] = useState('')
   const [editDesc, setEditDesc] = useState('')
   const [editPrice, setEditPrice] = useState('')
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pendingMedia, setPendingMedia] = useState<{ url: string; type: 'photo' | 'video' } | null>(null)
+  const [showAdd, setShowAdd] = useState(false)
+  const [addTitle, setAddTitle] = useState('')
+  const [addDesc, setAddDesc] = useState('')
+  const [addPrice, setAddPrice] = useState('')
+
+  const handleMediaFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const type: 'photo' | 'video' = file.type.startsWith('video') ? 'video' : 'photo'
+    setPendingMedia({ url, type })
+    setShowAdd(true)
+    e.target.value = ''
+  }
+
+  const saveNewItem = () => {
+    if (!pendingMedia) return
+    setItems(prev => [...prev, {
+      id: Date.now().toString(),
+      botId: '1',
+      title: addTitle || 'Новый контент',
+      description: addDesc,
+      priceStars: Number(addPrice) || 100,
+      mediaType: pendingMedia.type,
+      mediaUrl: pendingMedia.url,
+      purchases: 0,
+    }])
+    setPendingMedia(null)
+    setShowAdd(false)
+    setAddTitle(''); setAddDesc(''); setAddPrice('')
+  }
 
   const openEdit = (item: PPVItem) => {
     setEditing(item)
@@ -51,16 +85,18 @@ export default function PPV() {
 
       {/* Upload zone */}
       <div className="px-5">
-        <button className="w-full py-8 rounded-[20px] border-2 border-dashed border-[rgba(0,255,136,0.2)]
-          bg-[rgba(0,255,136,0.03)] hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.06)]
-          flex flex-col items-center gap-3 transition-all duration-200">
+        <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleMediaFile} />
+        <button onClick={() => fileInputRef.current?.click()}
+          className="w-full py-8 rounded-[20px] border-2 border-dashed border-[rgba(0,255,136,0.2)]
+            bg-[rgba(0,255,136,0.03)] hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.06)]
+            flex flex-col items-center gap-3 transition-all duration-200">
           <div className="w-12 h-12 rounded-full bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.25)] flex items-center justify-center"
             style={{ boxShadow: '0 0 14px rgba(0,255,136,0.1)' }}>
             <IconUpload size={22} color="#00ff88" />
           </div>
           <div className="text-center">
-            <p className="text-[14px] font-bold text-tw">Загрузить контент</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.32)]">Фото или видео</p>
+            <p className="text-[14px] font-bold">Загрузить контент</p>
+            <p className="text-[12px] text-[rgba(255,255,255,0.32)]">Фото или видео с телефона</p>
           </div>
         </button>
       </div>
@@ -73,11 +109,16 @@ export default function PPV() {
             <div key={item.id}
               className="group relative bg-[#080808] border border-[rgba(0,255,136,0.12)] rounded-[16px] overflow-hidden
                 hover:border-[rgba(0,255,136,0.3)] transition-all duration-200">
-              <div className="aspect-[4/3] bg-[rgba(0,255,136,0.02)] flex items-center justify-center">
-                {item.mediaType === 'video'
-                  ? <IconVideo size={28} color="rgba(0,255,136,0.2)" />
-                  : <IconImage size={28} color="rgba(0,255,136,0.2)" />
-                }
+              <div className="aspect-[4/3] bg-[rgba(0,255,136,0.02)] overflow-hidden flex items-center justify-center">
+                {item.mediaUrl ? (
+                  item.mediaType === 'video'
+                    ? <video src={item.mediaUrl} className="w-full h-full object-cover" muted playsInline />
+                    : <img src={item.mediaUrl} className="w-full h-full object-cover" alt="" />
+                ) : (
+                  item.mediaType === 'video'
+                    ? <IconVideo size={28} color="rgba(0,255,136,0.2)" />
+                    : <IconImage size={28} color="rgba(0,255,136,0.2)" />
+                )}
               </div>
               <div className="p-2.5">
                 <div className="flex items-center justify-between mb-1">
@@ -88,7 +129,7 @@ export default function PPV() {
                   }`}>
                     {item.mediaType === 'video' ? 'ВИДЕО' : 'ФОТО'}
                   </span>
-                  <span className="text-[11px] font-bold text-amber-s">⭐ {item.priceStars}</span>
+                  <span className="text-[11px] font-bold">⭐ {item.priceStars}</span>
                 </div>
                 <p className="text-[13px] font-bold truncate">{item.title}</p>
                 <p className="text-[10px] text-[rgba(255,255,255,0.28)] mt-0.5">{item.purchases} покупок</p>
@@ -101,9 +142,37 @@ export default function PPV() {
               </button>
             </div>
           ))}
+
+          {/* Add more tile */}
+          <button onClick={() => fileInputRef.current?.click()}
+            className="aspect-[4/3] rounded-[16px] border-2 border-dashed border-[rgba(0,255,136,0.12)]
+              hover:border-[rgba(0,255,136,0.3)] hover:bg-[rgba(0,255,136,0.03)] transition-all duration-200
+              flex flex-col items-center justify-center gap-2">
+            <IconPlus size={22} color="rgba(0,255,136,0.3)" />
+            <p className="text-[10px] text-[rgba(255,255,255,0.25)]">Добавить</p>
+          </button>
         </div>
       </div>
 
+      {/* Add new item sheet */}
+      <BottomSheet isOpen={showAdd} onClose={() => { setShowAdd(false); setPendingMedia(null) }} title="Новый контент">
+        {pendingMedia && (
+          <div className="rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.2)] mb-1">
+            {pendingMedia.type === 'video'
+              ? <video src={pendingMedia.url} className="w-full aspect-video object-cover" controls muted playsInline />
+              : <img src={pendingMedia.url} className="w-full aspect-video object-cover" alt="" />
+            }
+          </div>
+        )}
+        <Input label="Название" value={addTitle} onChange={setAddTitle} placeholder="Exclusive Set..." />
+        <Input label="Описание" value={addDesc} onChange={setAddDesc} textarea rows={2} placeholder="Описание под сообщением..." />
+        <Input label="Цена (Stars ⭐)" value={addPrice} onChange={setAddPrice} type="number" placeholder="150" />
+        <Button fullWidth onClick={saveNewItem}>
+          <IconPlus size={16} /> Добавить в PPV
+        </Button>
+      </BottomSheet>
+
+      {/* Edit item sheet */}
       <BottomSheet isOpen={!!editing} onClose={() => setEditing(null)} title="Редактировать">
         <Input label="Название" value={editTitle} onChange={setEditTitle} placeholder="Заголовок контента" />
         <Input label="Описание" value={editDesc} onChange={setEditDesc} textarea rows={3} placeholder="Описание под сообщением..." />

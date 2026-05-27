@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
 import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh } from '../../components/Icons'
 import Button from '../../components/Button'
@@ -21,9 +21,18 @@ export default function CreateModel() {
   const canGenerate = filled >= 3 && genStatus === 'idle'
   const previewUrl = photos.find(Boolean) ?? null
 
-  const addPhoto = (idx: number) => {
-    const fake = `https://picsum.photos/seed/${Date.now() + idx}/200/200`
-    setPhotos(p => p.map((v, i) => i === idx ? fake : v))
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pendingSlot, setPendingSlot] = useState<number | null>(null)
+
+  const openSlotPicker = (idx: number) => { setPendingSlot(idx); fileInputRef.current?.click() }
+
+  const handleSlotFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || pendingSlot === null) return
+    const url = URL.createObjectURL(file)
+    setPhotos(p => p.map((v, i) => i === pendingSlot ? url : v))
+    e.target.value = ''
+    setPendingSlot(null)
   }
 
   const removePhoto = (idx: number) => setPhotos(p => p.map((v, i) => i === idx ? null : v))
@@ -90,6 +99,7 @@ export default function CreateModel() {
         <>
           <div className="px-5">
             <p className="text-[13px] text-[rgba(255,255,255,0.38)] mb-4">Загрузи 3–4 чёткие фотографии лица для обучения модели</p>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleSlotFile} />
             <div className="grid grid-cols-2 gap-3">
               {photos.map((photo, idx) => (
                 <div key={idx} className="aspect-square relative">
@@ -107,7 +117,7 @@ export default function CreateModel() {
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => addPhoto(idx)}
+                    <button onClick={() => openSlotPicker(idx)}
                       className="w-full h-full rounded-[16px] border-2 border-dashed border-[rgba(0,255,136,0.15)] bg-[#080808]
                         hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.04)] transition-all duration-200
                         flex flex-col items-center justify-center gap-2">
