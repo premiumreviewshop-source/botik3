@@ -47,6 +47,7 @@ interface AppCtx {
   selectedBotId: string | null
   selectedModelId: string | null
   gallery: GeneratedPhoto[]
+  uploads: string[]
   readyPosts: ReadyPost[]
   savedPrompts: SavedPrompt[]
   savedFooters: SavedFooter[]
@@ -58,6 +59,7 @@ interface AppCtx {
   setPpvItems: (items: PPVItem[]) => void
   setModels: (m: AIModel[]) => void
   setGallery: (g: GeneratedPhoto[]) => void
+  setUploads: (u: string[]) => void
   setReadyPosts: (p: ReadyPost[]) => void
   setSavedPrompts: (p: SavedPrompt[]) => void
   setSavedFooters: (f: SavedFooter[]) => void
@@ -76,6 +78,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ppvItems, setPpvItems] = useState<PPVItem[]>([])
   const [models, setModels] = useState<AIModel[]>([])
   const [gallery, setGallery] = useState<GeneratedPhoto[]>([])
+  const [uploads, setUploads] = useState<string[]>([])
   const [selectedBotId, setSelectedBotId] = useState<string | null>(MOCK_BOTS[0]?.id ?? null)
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const [readyPosts, setReadyPosts] = useState<ReadyPost[]>([])
@@ -113,8 +116,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{
       page, dir, user, balance: 47.50, bots, transactions: MOCK_TRANSACTIONS,
-      ppvItems, models, selectedBotId, selectedModelId, gallery, readyPosts, savedPrompts, savedFooters,
-      navigate, goBack, setSelectedBotId, setSelectedModelId, setBots, setPpvItems, setModels, setGallery,
+      ppvItems, models, selectedBotId, selectedModelId, gallery, uploads, readyPosts, savedPrompts, savedFooters,
+      navigate, goBack, setSelectedBotId, setSelectedModelId, setBots, setPpvItems, setModels, setGallery, setUploads,
       setReadyPosts, setSavedPrompts, setSavedFooters,
     }}>
       {children}

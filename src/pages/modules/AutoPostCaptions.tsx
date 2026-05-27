@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
 import { IconBack, IconZap, IconPlus, IconTrash, IconCheck, IconRefresh } from '../../components/Icons'
 import Button from '../../components/Button'
@@ -13,14 +13,12 @@ const PRESETS: Record<Exclude<Preset,'custom'>, { label: string; emoji: string; 
   playful: { label: 'Игривое',          emoji: '😏', text: { en: "Guess what I'm hiding tonight 😏 Tip to unlock the full set~", ru: "Угадай, что прячу 😏 Тип для доступа к полному сету~", tr: "Ne sakladığımı tahmin et 😏 Bugün tam sete erişim~" } },
   mystery: { label: 'Загадочное',       emoji: '✨', text: { en: "There's a version of me you haven't seen yet ✨ Tonight you find out.", ru: "Есть версия меня, которую ещё не видел ✨ Сегодня ночью узнаешь.", tr: "Henüz görmediğin bir ben var ✨ Bu gece öğreniyorsun." } },
 }
-const DEMO_PHOTOS = Array.from({ length: 8 }, (_, i) => `https://picsum.photos/seed/cap${i+1}/200/260`)
-
 function SL({ children }: { children: string }) {
   return <p className="text-[9px] font-black uppercase tracking-[1.5px] text-[rgba(0,255,136,0.55)] mb-2">{children}</p>
 }
 
 export default function AutoPostCaptions() {
-  const { goBack, gallery, readyPosts, setReadyPosts, savedPrompts, setSavedPrompts, savedFooters, setSavedFooters } = useApp()
+  const { goBack, gallery, uploads, setUploads, readyPosts, setReadyPosts, savedPrompts, setSavedPrompts, savedFooters, setSavedFooters } = useApp()
 
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
   const [preset, setPreset] = useState<Preset>('hot')
@@ -46,7 +44,23 @@ export default function AutoPostCaptions() {
   const [showSavedPrompts, setShowSavedPrompts] = useState(false)
   const [showSavedFooters, setShowSavedFooters] = useState(false)
 
-  const pickerPhotos = [...gallery.map(g => g.url), ...DEMO_PHOTOS].slice(0, 12)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const url = ev.target?.result as string
+      setUploads([url, ...uploads])
+      setSelectedPhoto(url)
+      setShowPhotoPicker(false)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const pickerPhotos = [...uploads, ...gallery.map(g => g.url)]
 
   const generate = async () => {
     setLoading(true)
@@ -296,14 +310,24 @@ export default function AutoPostCaptions() {
 
       {/* Photo picker sheet */}
       <BottomSheet isOpen={showPhotoPicker} onClose={() => setShowPhotoPicker(false)} title="Выбрать фото">
-        <div className="grid grid-cols-4 gap-2">
-          {pickerPhotos.map((url, i) => (
-            <button key={i} onClick={() => { setSelectedPhoto(url); setShowPhotoPicker(false) }}
-              className="relative aspect-[3/4] rounded-[10px] overflow-hidden border-2 border-transparent hover:border-[#00ff88] transition-all">
-              <img src={url} className="w-full h-full object-cover" alt="" />
-            </button>
-          ))}
-        </div>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+        <button onClick={() => fileInputRef.current?.click()}
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[14px] border-2 border-dashed border-[rgba(0,255,136,0.35)] bg-[rgba(0,255,136,0.04)] hover:bg-[rgba(0,255,136,0.08)] transition-all mb-3">
+          <IconPlus size={18} color="#00ff88" />
+          <span className="text-[13px] font-bold text-[#00ff88]">Загрузить с телефона</span>
+        </button>
+        {pickerPhotos.length > 0 ? (
+          <div className="grid grid-cols-4 gap-2">
+            {pickerPhotos.map((url, i) => (
+              <button key={i} onClick={() => { setSelectedPhoto(url); setShowPhotoPicker(false) }}
+                className="relative aspect-[3/4] rounded-[10px] overflow-hidden border-2 border-transparent hover:border-[#00ff88] transition-all">
+                <img src={url} className="w-full h-full object-cover" alt="" />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[12px] text-[rgba(255,255,255,0.3)] text-center py-4">Загруженных фото пока нет</p>
+        )}
       </BottomSheet>
 
       {/* Saved prompts sheet */}

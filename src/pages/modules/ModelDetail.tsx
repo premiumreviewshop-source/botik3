@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
 import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh } from '../../components/Icons'
 import Button from '../../components/Button'
@@ -24,7 +24,7 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export default function ModelDetail() {
-  const { goBack, models, selectedModelId, bots, gallery, setGallery } = useApp()
+  const { goBack, models, selectedModelId, bots, gallery, setGallery, uploads, setUploads } = useApp()
 
   const model = models.find(m => m.id === selectedModelId)
 
@@ -37,6 +37,8 @@ export default function ModelDetail() {
 
   // Own photo slots
   const [ownPhotos, setOwnPhotos] = useState<(string | null)[]>([null, null, null, null])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pendingSlot, setPendingSlot] = useState<number | null>(null)
 
   // Selected templates (multi-select)
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([])
@@ -51,9 +53,22 @@ export default function ModelDetail() {
 
   const modelGallery = gallery.filter(g => g.modelId === model.id)
 
-  const addOwnPhoto = (idx: number) => {
-    const url = `https://picsum.photos/seed/own${Date.now() + idx}/200/260`
-    setOwnPhotos(p => p.map((v, i) => i === idx ? url : v))
+  const openSlotPicker = (idx: number) => {
+    setPendingSlot(idx)
+    fileInputRef.current?.click()
+  }
+  const handleSlotFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || pendingSlot === null) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const url = ev.target?.result as string
+      setOwnPhotos(p => p.map((v, i) => i === pendingSlot ? url : v))
+      setUploads([url, ...uploads])
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+    setPendingSlot(null)
   }
   const removeOwnPhoto = (idx: number) => setOwnPhotos(p => p.map((v, i) => i === idx ? null : v))
 
@@ -161,6 +176,7 @@ export default function ModelDetail() {
         {/* Own photos grid */}
         {source === 'own' && genStatus === 'idle' && (
           <>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleSlotFile} />
             <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-3">Добавь свои фото — каждое будет отдельной генерацией</p>
             <div className="grid grid-cols-4 gap-2 mb-4">
               {ownPhotos.map((photo, idx) => (
@@ -178,7 +194,7 @@ export default function ModelDetail() {
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => addOwnPhoto(idx)}
+                    <button onClick={() => openSlotPicker(idx)}
                       className="w-full h-full rounded-[12px] border-2 border-dashed border-[rgba(0,255,136,0.15)] bg-[#080808]
                         hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.04)] transition-all duration-200
                         flex flex-col items-center justify-center gap-1">
