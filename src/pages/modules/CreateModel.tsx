@@ -102,7 +102,7 @@ export default function CreateModel() {
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleSlotFile} />
             <div className="grid grid-cols-2 gap-3">
               {photos.map((photo, idx) => (
-                <div key={idx} className="aspect-square relative">
+                <div key={idx} className="aspect-[3/4] relative">
                   {photo ? (
                     <div className="w-full h-full rounded-[16px] overflow-hidden border border-[rgba(0,255,136,0.3)] relative bg-[#050505]"
                       style={{ boxShadow: '0 0 12px rgba(0,255,136,0.1)' }}>
