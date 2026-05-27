@@ -109,11 +109,11 @@ export default function PPV() {
             <div key={item.id}
               className="group relative bg-[#080808] border border-[rgba(0,255,136,0.12)] rounded-[16px] overflow-hidden
                 hover:border-[rgba(0,255,136,0.3)] transition-all duration-200">
-              <div className="aspect-[4/3] bg-[rgba(0,255,136,0.02)] overflow-hidden flex items-center justify-center">
+              <div className="aspect-[4/3] bg-[#050505] overflow-hidden flex items-center justify-center">
                 {item.mediaUrl ? (
                   item.mediaType === 'video'
-                    ? <video src={item.mediaUrl} className="w-full h-full object-cover" muted playsInline />
-                    : <img src={item.mediaUrl} className="w-full h-full object-cover" alt="" />
+                    ? <video src={item.mediaUrl} className="w-full h-full object-contain" muted playsInline />
+                    : <img src={item.mediaUrl} className="w-full h-full object-contain" alt="" />
                 ) : (
                   item.mediaType === 'video'
                     ? <IconVideo size={28} color="rgba(0,255,136,0.2)" />
@@ -157,10 +157,10 @@ export default function PPV() {
       {/* Add new item sheet */}
       <BottomSheet isOpen={showAdd} onClose={() => { setShowAdd(false); setPendingMedia(null) }} title="Новый контент">
         {pendingMedia && (
-          <div className="rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.2)] mb-1">
+          <div className="rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.2)] bg-black mb-1">
             {pendingMedia.type === 'video'
-              ? <video src={pendingMedia.url} className="w-full aspect-video object-cover" controls muted playsInline />
-              : <img src={pendingMedia.url} className="w-full aspect-video object-cover" alt="" />
+              ? <video src={pendingMedia.url} className="w-full max-h-72 object-contain" controls muted playsInline />
+              : <img src={pendingMedia.url} className="w-full max-h-72 object-contain" alt="" />
             }
           </div>
         )}

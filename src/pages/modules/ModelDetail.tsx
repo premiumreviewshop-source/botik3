@@ -182,8 +182,8 @@ export default function ModelDetail() {
               {ownPhotos.map((photo, idx) => (
                 <div key={idx} className="aspect-[3/4] relative">
                   {photo ? (
-                    <div className="w-full h-full rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.3)] relative">
-                      <img src={photo} className="w-full h-full object-cover" alt="" />
+                    <div className="w-full h-full rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.3)] relative bg-[#050505]">
+                      <img src={photo} className="w-full h-full object-contain" alt="" />
                       <button onClick={() => removeOwnPhoto(idx)}
                         className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center">
                         <IconTrash size={10} color="#00ff88" />
@@ -263,8 +263,8 @@ export default function ModelDetail() {
               {results.map((url, i) => {
                 const saved = savedIds.has(url)
                 return (
-                  <div key={i} className="relative aspect-[3/4] rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.2)]">
-                    <img src={url} className="w-full h-full object-cover" alt="" />
+                  <div key={i} className="relative aspect-[3/4] rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.2)] bg-[#050505]">
+                    <img src={url} className="w-full h-full object-contain" alt="" />
                     <button onClick={() => saveOne(url, i)}
                       className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center border transition-all
                         ${saved
@@ -309,8 +309,8 @@ export default function ModelDetail() {
         ) : (
           <div className="grid grid-cols-3 gap-2">
             {modelGallery.map(g => (
-              <div key={g.id} className="aspect-[3/4] rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.15)]">
-                <img src={g.url} className="w-full h-full object-cover" alt="" />
+              <div key={g.id} className="aspect-[3/4] rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.15)] bg-[#050505]">
+                <img src={g.url} className="w-full h-full object-contain" alt="" />
               </div>
             ))}
           </div>

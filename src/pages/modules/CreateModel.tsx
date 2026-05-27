@@ -104,9 +104,9 @@ export default function CreateModel() {
               {photos.map((photo, idx) => (
                 <div key={idx} className="aspect-square relative">
                   {photo ? (
-                    <div className="w-full h-full rounded-[16px] overflow-hidden border border-[rgba(0,255,136,0.3)] relative"
+                    <div className="w-full h-full rounded-[16px] overflow-hidden border border-[rgba(0,255,136,0.3)] relative bg-[#050505]"
                       style={{ boxShadow: '0 0 12px rgba(0,255,136,0.1)' }}>
-                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                      <img src={photo} alt="" className="w-full h-full object-contain" />
                       <button onClick={() => removePhoto(idx)}
                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 border border-[rgba(0,255,136,0.3)] flex items-center justify-center">
                         <IconTrash size={14} color="#00ff88" />
