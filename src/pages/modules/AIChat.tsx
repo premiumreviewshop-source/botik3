@@ -30,6 +30,7 @@ export default function AIChat() {
   }, [promptType, persona.name, persona.age, persona.country, lang])
 
   const availableBots = bots.filter(b => b.modules.length === 0 || b.modules.includes('AI Chat'))
+  const activeChatters = bots.filter(b => b.modules.includes('AI Chat') && b.isActive)
 
   const handleSave = async () => {
     if (selectedBotId) {
@@ -51,6 +52,31 @@ export default function AIChat() {
           <h1 className="text-[22px] font-black tracking-tight">AI Chatting</h1>
         </div>
       </div>
+
+      {/* Active chatters strip */}
+      {activeChatters.length > 0 && (
+        <div className="px-5">
+          <div className="flex items-center gap-2 p-3 bg-[rgba(0,255,136,0.04)] border border-[rgba(0,255,136,0.14)] rounded-[14px]">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff88] opacity-60" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00ff88]" />
+              </span>
+              <p className="text-[10px] font-black uppercase tracking-[1.5px] text-[rgba(0,255,136,0.6)]">Активны</p>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {activeChatters.map(b => (
+                <div key={b.id} className="flex items-center gap-1.5 flex-shrink-0 bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] rounded-full pl-1 pr-2.5 py-1">
+                  <div className="w-5 h-5 rounded-full bg-[rgba(0,255,136,0.15)] flex items-center justify-center text-[8px] font-black text-[#00ff88]">
+                    {b.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span className="text-[11px] font-bold text-[rgba(255,255,255,0.75)]">{b.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bot selector */}
       <div className="px-5">
