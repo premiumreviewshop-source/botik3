@@ -140,32 +140,24 @@ export default function AutoPostCaptions() {
       <div className="px-5 flex flex-col gap-4">
         {/* Photo */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <SL>Фото для поста</SL>
-            <div className="flex gap-1 -mt-2">
-              <button onClick={() => { setIsPackMode(false); setPackPhotos([]) }}
-                className={`px-2.5 py-1 rounded-[8px] text-[10px] font-black border transition-all ${!isPackMode ? 'bg-[#00ff88] border-[#00ff88] text-black' : 'border-[rgba(0,255,136,0.2)] text-[rgba(255,255,255,0.4)]'}`}>
-                1 фото
-              </button>
-              <button onClick={() => { setIsPackMode(true); setSelectedPhoto(null) }}
-                className={`px-2.5 py-1 rounded-[8px] text-[10px] font-black border transition-all ${isPackMode ? 'bg-[#00ff88] border-[#00ff88] text-black' : 'border-[rgba(0,255,136,0.2)] text-[rgba(255,255,255,0.4)]'}`}>
-                Пак
-              </button>
-            </div>
+          <SL>Фото для поста</SL>
+          <div className="flex gap-2 mb-2">
+            <button onClick={() => { setIsPackMode(false); setPackPhotos([]); openPicker() }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[12px] border-2 border-dashed border-[rgba(0,255,136,0.22)] hover:border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.02)] hover:bg-[rgba(0,255,136,0.06)] text-[12px] font-bold text-[rgba(255,255,255,0.45)] hover:text-[rgba(0,255,136,0.9)] transition-all">
+              <IconPlus size={14} color="rgba(0,255,136,0.5)" /> Фото
+            </button>
+            <button onClick={() => { setIsPackMode(true); setSelectedPhoto(null); openPicker() }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[12px] border-2 border-dashed border-[rgba(0,255,136,0.22)] hover:border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.02)] hover:bg-[rgba(0,255,136,0.06)] text-[12px] font-bold text-[rgba(255,255,255,0.45)] hover:text-[rgba(0,255,136,0.9)] transition-all">
+              <IconPlus size={14} color="rgba(0,255,136,0.5)" /> Пак фото
+            </button>
           </div>
-          {!isPackMode ? (
-            selectedPhoto ? (
-              <div className="relative w-24 h-32 rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.35)] bg-[#050505]">
-                <img src={selectedPhoto} className="w-full h-full object-contain" alt="" />
-                <button onClick={() => setSelectedPhoto(null)} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center"><IconTrash size={9} color="#ff5555" /></button>
-              </div>
-            ) : (
-              <button onClick={() => openPicker()}
-                className="flex items-center gap-2 px-4 py-3 rounded-[14px] border-2 border-dashed border-[rgba(0,255,136,0.2)] hover:border-[rgba(0,255,136,0.4)] text-[13px] text-[rgba(255,255,255,0.35)] transition-all w-full">
-                <IconPlus size={16} color="rgba(0,255,136,0.4)" /> Выбрать фото из хранилища
-              </button>
-            )
-          ) : (
+          {selectedPhoto && !isPackMode && (
+            <div className="relative w-24 h-32 rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.35)] bg-[#050505]">
+              <img src={selectedPhoto} className="w-full h-full object-contain" alt="" />
+              <button onClick={() => setSelectedPhoto(null)} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center"><IconTrash size={9} color="#ff5555" /></button>
+            </div>
+          )}
+          {isPackMode && packPhotos.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {packPhotos.map((url, i) => (
                 <div key={i} className="relative w-20 h-28 flex-shrink-0 rounded-[10px] overflow-hidden border border-[rgba(0,255,136,0.35)] bg-[#050505]">
@@ -177,7 +169,7 @@ export default function AutoPostCaptions() {
               <button onClick={() => openPicker()}
                 className="w-20 h-28 flex-shrink-0 rounded-[10px] border-2 border-dashed border-[rgba(0,255,136,0.15)] hover:border-[rgba(0,255,136,0.4)] bg-[#080808] flex flex-col items-center justify-center gap-1 transition-all">
                 <IconPlus size={18} color="rgba(0,255,136,0.4)" />
-                <p className="text-[9px] text-[rgba(255,255,255,0.2)]">Добавить</p>
+                <p className="text-[9px] text-[rgba(255,255,255,0.2)]">Ещё</p>
               </button>
             </div>
           )}
