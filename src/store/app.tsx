@@ -4,6 +4,7 @@ import type { Page, NavDir, TgUser, Bot, PPVItem, AIModel, Transaction, Generate
 const PAGE_DEPTH: Record<Page, number> = {
   home: 0, bots: 0, balance: 0, referral: 0, settings: 0,
   'bots/add': 1,
+  'bots/detail': 2,
   'module/aichat-ppv': 1, 'module/models': 1, 'module/autopost': 1,
   'module/aichat': 2, 'module/ppv': 2,
   'module/models/create': 2,

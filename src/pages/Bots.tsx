@@ -4,7 +4,7 @@ import StatusPill from '../components/StatusPill'
 import Button from '../components/Button'
 
 export default function Bots() {
-  const { bots, navigate } = useApp()
+  const { bots, navigate, setSelectedBotId } = useApp()
 
   return (
     <div className="flex flex-col gap-5 pt-4">
@@ -26,7 +26,7 @@ export default function Bots() {
 
       <div className="flex flex-col gap-2.5 px-5">
         {bots.map(bot => (
-          <button key={bot.id}
+          <button key={bot.id} onClick={() => { setSelectedBotId(bot.id); navigate('bots/detail') }}
             className="flex items-center gap-3.5 p-4 bg-[#080808] border border-[rgba(0,255,136,0.12)] rounded-[16px] text-left
               hover:border-[rgba(0,255,136,0.35)] hover:bg-[rgba(0,255,136,0.02)] hover:-translate-y-[1px] transition-all duration-200">
             <div className="w-11 h-11 rounded-full bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center text-[13px] font-black text-[#00ff88] flex-shrink-0">

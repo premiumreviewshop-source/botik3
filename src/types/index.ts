@@ -2,6 +2,7 @@ export type Page =
   | 'home'
   | 'bots'
   | 'bots/add'
+  | 'bots/detail'
   | 'balance'
   | 'referral'
   | 'settings'

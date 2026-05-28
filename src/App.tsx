@@ -4,6 +4,7 @@ import BottomNav from './components/BottomNav'
 import Home from './pages/Home'
 import Bots from './pages/Bots'
 import AddBot from './pages/AddBot'
+import BotDetail from './pages/BotDetail'
 import Balance from './pages/Balance'
 import Referral from './pages/Referral'
 import Settings from './pages/Settings'
@@ -32,6 +33,7 @@ function PageRouter() {
       case 'home': return <Home />
       case 'bots': return <Bots />
       case 'bots/add': return <AddBot />
+      case 'bots/detail': return <BotDetail />
       case 'balance': return <Balance />
       case 'referral': return <Referral />
       case 'settings': return <Settings />

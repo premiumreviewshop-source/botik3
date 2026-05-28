@@ -23,7 +23,7 @@ function SL({ children }: { children: ReactNode }) {
 }
 
 export default function AutoPostSchedule() {
-  const { goBack, bots, readyPosts, setReadyPosts, uploads, setUploads, gallery } = useApp()
+  const { goBack, bots, setBots, readyPosts, setReadyPosts, uploads, setUploads, gallery } = useApp()
 
   const [channelName, setChannelName] = useState('@mychannel')
   const [botId, setBotId] = useState(bots[0]?.id ?? '')
@@ -154,18 +154,27 @@ export default function AutoPostSchedule() {
           <div>
             <SL>Бот для постинга</SL>
             <div className="flex flex-col gap-1.5">
-              {bots.map(b => (
-                <button key={b.id} onClick={() => setBotId(b.id)}
-                  className={`flex items-center gap-3 p-3 rounded-[12px] border transition-all text-left ${botId === b.id ? 'border-[rgba(0,255,136,0.4)] bg-[rgba(0,255,136,0.06)]' : 'border-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.25)]'}`}>
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${b.isActive ? 'bg-[#00ff88]' : 'bg-[rgba(255,255,255,0.2)]'}`} style={b.isActive ? { boxShadow: '0 0 5px rgba(0,255,136,1)' } : {}} />
-                  <span className="text-[13px] font-bold flex-1">{b.name}</span>
-                  <span className="text-[11px] text-[rgba(255,255,255,0.3)]">{b.handle}</span>
-                  {botId === b.id && <IconCheck size={13} color="#00ff88" />}
-                </button>
-              ))}
+              {bots.map(b => {
+                const occupied = b.modules.length > 0 && !b.modules.includes('Автопостинг')
+                return (
+                  <button key={b.id} onClick={() => !occupied && setBotId(b.id)} disabled={occupied}
+                    className={`flex items-center gap-3 p-3 rounded-[12px] border transition-all text-left ${occupied ? 'opacity-50 cursor-not-allowed border-[rgba(255,255,255,0.06)]' : botId === b.id ? 'border-[rgba(0,255,136,0.4)] bg-[rgba(0,255,136,0.06)]' : 'border-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.25)]'}`}>
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${b.isActive ? 'bg-[#00ff88]' : 'bg-[rgba(255,255,255,0.2)]'}`} style={b.isActive ? { boxShadow: '0 0 5px rgba(0,255,136,1)' } : {}} />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[13px] font-bold">{b.name}</span>
+                      {occupied && <p className="text-[10px] text-amber-400 mt-0.5">занят: {b.modules.join(', ')}</p>}
+                    </div>
+                    <span className="text-[11px] text-[rgba(255,255,255,0.3)]">{b.handle}</span>
+                    {botId === b.id && <IconCheck size={13} color="#00ff88" />}
+                  </button>
+                )
+              })}
             </div>
           </div>
-          <Button fullWidth disabled={!channelName.trim() || !botId} onClick={() => setSetupDone(true)}>
+          <Button fullWidth disabled={!channelName.trim() || !botId} onClick={() => {
+            setBots(bots.map(b => b.id === botId ? { ...b, modules: [...new Set([...b.modules, 'Автопостинг'])] } : b))
+            setSetupDone(true)
+          }}>
             <IconCheck size={17} /> Сохранить и продолжить →
           </Button>
         </div>
