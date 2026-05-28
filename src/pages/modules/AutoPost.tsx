@@ -1,5 +1,5 @@
 import { useApp } from '../../store/app'
-import { IconBack, IconZap, IconSend, IconChevronRight } from '../../components/Icons'
+import { IconBack, IconZap, IconSend, IconChevronRight, IconInfo } from '../../components/Icons'
 
 export default function AutoPost() {
   const { navigate, goBack } = useApp()
@@ -64,6 +64,21 @@ export default function AutoPost() {
             </button>
           )
         })}
+      </div>
+
+      {/* Analytics card */}
+      <div className="px-5">
+        <button onClick={() => navigate('module/autopost/analytics')}
+          className="w-full flex items-center gap-3 p-4 bg-[rgba(0,255,136,0.03)] border border-[rgba(0,255,136,0.15)] rounded-[16px] hover:border-[rgba(0,255,136,0.35)] hover:bg-[rgba(0,255,136,0.06)] transition-all">
+          <div className="w-10 h-10 rounded-[12px] bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center flex-shrink-0">
+            <IconInfo size={20} color="rgba(0,255,136,0.8)" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-[14px] font-bold">Аналитика</p>
+            <p className="text-[11px] text-[rgba(255,255,255,0.35)]">Лучшее время, охват, AI-рекомендации</p>
+          </div>
+          <IconChevronRight size={15} color="rgba(0,255,136,0.5)" />
+        </button>
       </div>
     </div>
   )

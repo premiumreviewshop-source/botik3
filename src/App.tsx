@@ -17,6 +17,7 @@ import ModelDetail from './pages/modules/ModelDetail'
 import AutoPost from './pages/modules/AutoPost'
 import AutoPostCaptions from './pages/modules/AutoPostCaptions'
 import AutoPostSchedule from './pages/modules/AutoPostSchedule'
+import AutoPostAnalytics from './pages/modules/AutoPostAnalytics'
 
 function PageRouter() {
   const { page, dir } = useApp()
@@ -46,6 +47,7 @@ function PageRouter() {
       case 'module/autopost': return <AutoPost />
       case 'module/autopost/captions': return <AutoPostCaptions />
       case 'module/autopost/schedule': return <AutoPostSchedule />
+      case 'module/autopost/analytics': return <AutoPostAnalytics />
       default: return <Home />
     }
   }

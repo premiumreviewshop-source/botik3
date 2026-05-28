@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
-import type { Page, NavDir, TgUser, Bot, PPVItem, AIModel, Transaction, GeneratedPhoto, ReadyPost, SavedPrompt, SavedFooter } from '../types'
+import type { Page, NavDir, TgUser, Bot, PPVItem, AIModel, Transaction, GeneratedPhoto, ReadyPost, SavedPrompt, SavedFooter, PlanItem } from '../types'
 
 const PAGE_DEPTH: Record<Page, number> = {
   home: 0, bots: 0, balance: 0, referral: 0, settings: 0,
@@ -11,6 +11,7 @@ const PAGE_DEPTH: Record<Page, number> = {
   'module/models/detail': 2,
   'module/autopost/captions': 2,
   'module/autopost/schedule': 2,
+  'module/autopost/analytics': 2,
 }
 
 const TAB_INDEX: Partial<Record<Page, number>> = {
@@ -68,6 +69,8 @@ interface AppCtx {
   setReadyPosts: (p: ReadyPost[]) => void
   setSavedPrompts: (p: SavedPrompt[]) => void
   setSavedFooters: (f: SavedFooter[]) => void
+  contentPlan: PlanItem[] | null
+  setContentPlan: (p: PlanItem[] | null) => void
 }
 
 const Ctx = createContext<AppCtx>(null!)
@@ -89,6 +92,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [readyPosts, setReadyPosts] = useState<ReadyPost[]>([])
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([])
   const [savedFooters, setSavedFooters] = useState<SavedFooter[]>([])
+  const [contentPlan, setContentPlan] = useState<PlanItem[] | null>(null)
 
   const navigate = useCallback((to: Page) => {
     const fromDepth = PAGE_DEPTH[page]
@@ -123,7 +127,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       page, dir, user, balance: 47.50, bots, transactions: MOCK_TRANSACTIONS,
       ppvItems, models, selectedBotId, selectedModelId, gallery, uploads, readyPosts, savedPrompts, savedFooters,
       navigate, goBack, setSelectedBotId, setSelectedModelId, setBots, setPpvItems, setModels, setGallery, setUploads,
-      setReadyPosts, setSavedPrompts, setSavedFooters,
+      setReadyPosts, setSavedPrompts, setSavedFooters, contentPlan, setContentPlan,
     }}>
       {children}
     </Ctx.Provider>

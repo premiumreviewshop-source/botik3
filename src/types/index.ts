@@ -15,6 +15,7 @@ export type Page =
   | 'module/autopost'
   | 'module/autopost/captions'
   | 'module/autopost/schedule'
+  | 'module/autopost/analytics'
 
 export type NavDir = 'forward' | 'back' | 'tab'
 
@@ -97,4 +98,19 @@ export interface SavedFooter {
   name: string
   text: string
   gapLines: number
+}
+
+export type PlanStatus = 'scheduled' | 'published' | 'cancelled'
+export interface PlanItem {
+  id: string
+  date: string
+  dateObj: string
+  time: string
+  category: 'free' | 'paid' | 'fix'
+  postId?: string
+  postUrl?: string
+  postCaption?: string
+  price?: number
+  status: PlanStatus
+  editing: boolean
 }
