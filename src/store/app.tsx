@@ -25,7 +25,7 @@ const MOCK_USER: TgUser = {
 
 const MOCK_BOTS: Bot[] = [
   { id: '1', name: 'SofiaAI', handle: '@sofiaai_bot', isActive: true, modules: ['AI Chat', 'PPV'] },
-  { id: '2', name: 'AnaBot', handle: '@anabot_official', isActive: false, modules: ['AI Chat'] },
+  { id: '2', name: 'AnaBot', handle: '@anabot_official', isActive: false, modules: [] },
 ]
 
 const MOCK_MODELS: AIModel[] = [
