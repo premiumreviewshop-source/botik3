@@ -43,8 +43,13 @@ export default function AutoPostCaptions() {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false)
   const [showSavedPrompts, setShowSavedPrompts] = useState(false)
   const [showSavedFooters, setShowSavedFooters] = useState(false)
+  const [isPackMode, setIsPackMode] = useState(false)
+  const [packPhotos, setPackPhotos] = useState<string[]>([])
+  const [pickerSelection, setPickerSelection] = useState<string[]>([])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const openPicker = () => { setPickerSelection([]); setShowPhotoPicker(true) }
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -53,8 +58,12 @@ export default function AutoPostCaptions() {
     reader.onload = ev => {
       const url = ev.target?.result as string
       setUploads([url, ...uploads])
-      setSelectedPhoto(url)
-      setShowPhotoPicker(false)
+      if (isPackMode) {
+        setPackPhotos(p => [...p, url])
+      } else {
+        setSelectedPhoto(url)
+        setShowPhotoPicker(false)
+      }
     }
     reader.readAsDataURL(file)
     e.target.value = ''
@@ -104,9 +113,16 @@ export default function AutoPostCaptions() {
   }
 
   const addToReady = () => {
-    if (!caption || !selectedPhoto) return
-    setReadyPosts([...readyPosts, { id: Date.now().toString(), url: selectedPhoto, caption, createdAt: new Date().toLocaleDateString('ru') }])
-    setCaption(''); setSelectedPhoto(null)
+    if (!caption) return
+    if (isPackMode) {
+      if (packPhotos.length === 0) return
+      setReadyPosts([...readyPosts, { id: Date.now().toString(), url: packPhotos[0], extraUrls: packPhotos.slice(1), caption, createdAt: new Date().toLocaleDateString('ru') }])
+      setCaption(''); setPackPhotos([])
+    } else {
+      if (!selectedPhoto) return
+      setReadyPosts([...readyPosts, { id: Date.now().toString(), url: selectedPhoto, caption, createdAt: new Date().toLocaleDateString('ru') }])
+      setCaption(''); setSelectedPhoto(null)
+    }
   }
 
   return (
@@ -124,17 +140,46 @@ export default function AutoPostCaptions() {
       <div className="px-5 flex flex-col gap-4">
         {/* Photo */}
         <div>
-          <SL>Фото для поста</SL>
-          {selectedPhoto ? (
-            <div className="relative w-24 h-32 rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.35)]">
-              <img src={selectedPhoto} className="w-full h-full object-cover" alt="" />
-              <button onClick={() => setSelectedPhoto(null)} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center"><IconTrash size={9} color="#ff5555" /></button>
+          <div className="flex items-center justify-between mb-2">
+            <SL>Фото для поста</SL>
+            <div className="flex gap-1 -mt-2">
+              <button onClick={() => { setIsPackMode(false); setPackPhotos([]) }}
+                className={`px-2.5 py-1 rounded-[8px] text-[10px] font-black border transition-all ${!isPackMode ? 'bg-[#00ff88] border-[#00ff88] text-black' : 'border-[rgba(0,255,136,0.2)] text-[rgba(255,255,255,0.4)]'}`}>
+                1 фото
+              </button>
+              <button onClick={() => { setIsPackMode(true); setSelectedPhoto(null) }}
+                className={`px-2.5 py-1 rounded-[8px] text-[10px] font-black border transition-all ${isPackMode ? 'bg-[#00ff88] border-[#00ff88] text-black' : 'border-[rgba(0,255,136,0.2)] text-[rgba(255,255,255,0.4)]'}`}>
+                Пак
+              </button>
             </div>
+          </div>
+          {!isPackMode ? (
+            selectedPhoto ? (
+              <div className="relative w-24 h-32 rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.35)] bg-[#050505]">
+                <img src={selectedPhoto} className="w-full h-full object-contain" alt="" />
+                <button onClick={() => setSelectedPhoto(null)} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center"><IconTrash size={9} color="#ff5555" /></button>
+              </div>
+            ) : (
+              <button onClick={() => openPicker()}
+                className="flex items-center gap-2 px-4 py-3 rounded-[14px] border-2 border-dashed border-[rgba(0,255,136,0.2)] hover:border-[rgba(0,255,136,0.4)] text-[13px] text-[rgba(255,255,255,0.35)] transition-all w-full">
+                <IconPlus size={16} color="rgba(0,255,136,0.4)" /> Выбрать фото из хранилища
+              </button>
+            )
           ) : (
-            <button onClick={() => setShowPhotoPicker(true)}
-              className="flex items-center gap-2 px-4 py-3 rounded-[14px] border-2 border-dashed border-[rgba(0,255,136,0.2)] hover:border-[rgba(0,255,136,0.4)] text-[13px] text-[rgba(255,255,255,0.35)] transition-all w-full">
-              <IconPlus size={16} color="rgba(0,255,136,0.4)" /> Выбрать фото из хранилища
-            </button>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {packPhotos.map((url, i) => (
+                <div key={i} className="relative w-20 h-28 flex-shrink-0 rounded-[10px] overflow-hidden border border-[rgba(0,255,136,0.35)] bg-[#050505]">
+                  <img src={url} className="w-full h-full object-contain" alt="" />
+                  <button onClick={() => setPackPhotos(p => p.filter((_, j) => j !== i))} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center"><IconTrash size={8} color="#ff5555" /></button>
+                  {i === 0 && <span className="absolute bottom-1 left-1 text-[8px] font-black text-[#00ff88] bg-black/60 px-1 rounded">обложка</span>}
+                </div>
+              ))}
+              <button onClick={() => openPicker()}
+                className="w-20 h-28 flex-shrink-0 rounded-[10px] border-2 border-dashed border-[rgba(0,255,136,0.15)] hover:border-[rgba(0,255,136,0.4)] bg-[#080808] flex flex-col items-center justify-center gap-1 transition-all">
+                <IconPlus size={18} color="rgba(0,255,136,0.4)" />
+                <p className="text-[9px] text-[rgba(255,255,255,0.2)]">Добавить</p>
+              </button>
+            </div>
           )}
         </div>
 
@@ -299,17 +344,17 @@ export default function AutoPostCaptions() {
               className="w-full bg-[#080808] border border-[rgba(0,255,136,0.2)] rounded-[14px] px-4 py-3 text-[13px] leading-relaxed text-white resize-none outline-none focus:border-[rgba(0,255,136,0.5)] transition-all mb-2" />
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1" onClick={() => { setCaption(''); generate() }}><IconRefresh size={15} /> Другой</Button>
-              <Button className="flex-1" onClick={addToReady} disabled={!selectedPhoto}>
+              <Button className="flex-1" onClick={addToReady} disabled={isPackMode ? packPhotos.length === 0 : !selectedPhoto}>
                 <IconCheck size={15} /> В готовые посты
               </Button>
             </div>
-            {!selectedPhoto && <p className="text-[11px] text-[rgba(255,100,100,0.7)] mt-1.5">Выбери фото выше, чтобы добавить в готовые посты</p>}
+            {(isPackMode ? packPhotos.length === 0 : !selectedPhoto) && <p className="text-[11px] text-[rgba(255,100,100,0.7)] mt-1.5">{isPackMode ? 'Добавь хотя бы одно фото в пак' : 'Выбери фото выше, чтобы добавить в готовые посты'}</p>}
           </div>
         )}
       </div>
 
       {/* Photo picker sheet */}
-      <BottomSheet isOpen={showPhotoPicker} onClose={() => setShowPhotoPicker(false)} title="Выбрать фото">
+      <BottomSheet isOpen={showPhotoPicker} onClose={() => setShowPhotoPicker(false)} title={isPackMode ? 'Выбрать фото (пак)' : 'Выбрать фото'}>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
         <button onClick={() => fileInputRef.current?.click()}
           className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[14px] border-2 border-dashed border-[rgba(0,255,136,0.35)] bg-[rgba(0,255,136,0.04)] hover:bg-[rgba(0,255,136,0.08)] transition-all mb-3">
@@ -318,15 +363,41 @@ export default function AutoPostCaptions() {
         </button>
         {pickerPhotos.length > 0 ? (
           <div className="grid grid-cols-4 gap-2">
-            {pickerPhotos.map((url, i) => (
-              <button key={i} onClick={() => { setSelectedPhoto(url); setShowPhotoPicker(false) }}
-                className="relative aspect-[3/4] rounded-[10px] overflow-hidden border-2 border-transparent hover:border-[#00ff88] transition-all">
-                <img src={url} className="w-full h-full object-cover" alt="" />
-              </button>
-            ))}
+            {pickerPhotos.map((url, i) => {
+              const isSelected = pickerSelection.includes(url)
+              const selIdx = pickerSelection.indexOf(url)
+              return (
+                <button key={i} onClick={() => {
+                  if (!isPackMode) { setSelectedPhoto(url); setShowPhotoPicker(false); return }
+                  setPickerSelection(s => isSelected ? s.filter(x => x !== url) : [...s, url])
+                }}
+                  className={`relative aspect-[3/4] rounded-[10px] overflow-hidden border-2 transition-all ${isPackMode && isSelected ? 'border-[#00ff88]' : 'border-transparent hover:border-[rgba(0,255,136,0.5)]'}`}>
+                  <img src={url} className="w-full h-full object-cover" alt="" />
+                  {isPackMode && isSelected && (
+                    <div className="absolute inset-0 bg-[rgba(0,255,136,0.18)]" />
+                  )}
+                  {isPackMode && isSelected && (
+                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#00ff88] flex items-center justify-center text-[10px] font-black text-black">
+                      {selIdx + 1}
+                    </div>
+                  )}
+                </button>
+              )
+            })}
           </div>
         ) : (
           <p className="text-[12px] text-[rgba(255,255,255,0.3)] text-center py-4">Загруженных фото пока нет</p>
+        )}
+        {isPackMode && (
+          <div className="mt-3">
+            <Button fullWidth disabled={pickerSelection.length === 0} onClick={() => {
+              setPackPhotos(p => [...p, ...pickerSelection])
+              setPickerSelection([])
+              setShowPhotoPicker(false)
+            }}>
+              <IconCheck size={16} /> Готово ({pickerSelection.length} фото)
+            </Button>
+          </div>
         )}
       </BottomSheet>
 
