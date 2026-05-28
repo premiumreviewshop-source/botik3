@@ -213,8 +213,8 @@ export default function AutoPostSchedule() {
                       <img src={cp.post.url} className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" alt="" />
                       <p className="flex-1 text-[11px] text-[rgba(255,255,255,0.5)] truncate">{cp.post.caption}</p>
                       {cp.price && <span className="text-[10px] font-black text-amber-400">⭐{cp.price}</span>}
-                      <button onClick={() => openEdit(cp.post.id, cat)} className="text-[10px] text-[rgba(0,255,136,0.6)] hover:text-[#00ff88]">✎</button>
-                      <button onClick={() => removeFromCat(cat, cp.post.id)} className="text-[rgba(255,80,80,0.5)] hover:text-[rgba(255,80,80,0.9)] text-[14px]">×</button>
+                      <button onClick={() => openEdit(cp.post.id, cat)} className="w-8 h-8 rounded-[8px] bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center text-[15px] text-[rgba(0,255,136,0.7)] hover:bg-[rgba(0,255,136,0.15)] hover:text-[#00ff88] transition-all flex-shrink-0">✎</button>
+                      <button onClick={() => removeFromCat(cat, cp.post.id)} className="w-8 h-8 rounded-[8px] bg-[rgba(255,80,80,0.07)] border border-[rgba(255,80,80,0.2)] flex items-center justify-center text-[16px] text-[rgba(255,80,80,0.6)] hover:bg-[rgba(255,80,80,0.15)] hover:text-[rgba(255,80,80,1)] transition-all flex-shrink-0">×</button>
                     </div>
                   ))}
                 </div>
