@@ -58,7 +58,7 @@ export default function AutoPostCaptions() {
       const url = ev.target?.result as string
       setUploads([url, ...uploads])
       if (isPackMode) {
-        setPackPhotos(p => [...p, url])
+        setPickerSelection(s => [...s, url])
       } else {
         setSelectedPhoto(url)
         setShowPhotoPicker(false)
