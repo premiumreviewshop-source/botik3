@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconUpload, IconEdit, IconVideo, IconImage, IconPlus } from '../../components/Icons'
+import { IconBack, IconUpload, IconEdit, IconVideo, IconImage, IconPlus, IconBox } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 import Input from '../../components/Input'
@@ -176,7 +176,7 @@ export default function PPV() {
             </p>
             {botItems.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-12 text-center bg-[#080808] border border-[rgba(0,255,136,0.08)] rounded-[16px]">
-                <p className="text-[28px]">📦</p>
+                <IconBox size={32} color="rgba(0,255,136,0.25)" />
                 <p className="text-[13px] text-[rgba(255,255,255,0.3)]">Нет контента для {activeBot.name}</p>
                 <button onClick={() => fileInputRef.current?.click()}
                   className="text-[12px] font-bold text-[rgba(0,255,136,0.7)] underline">

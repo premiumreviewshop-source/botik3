@@ -1,5 +1,5 @@
 import { useApp } from '../store/app'
-import { IconPlus, IconChevronRight } from '../components/Icons'
+import { IconPlus, IconChevronRight, IconBots } from '../components/Icons'
 import StatusPill from '../components/StatusPill'
 import Button from '../components/Button'
 
@@ -52,7 +52,7 @@ export default function Bots() {
 
         {bots.length === 0 && (
           <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="w-16 h-16 rounded-[20px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center text-3xl">🤖</div>
+            <div className="w-16 h-16 rounded-[20px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center"><IconBots size={32} color="rgba(0,255,136,0.4)" /></div>
             <div>
               <p className="text-[17px] font-bold mb-1">Нет подключённых ботов</p>
               <p className="text-[13px] text-[rgba(255,255,255,0.32)]">Добавь Telegram-бота<br/>чтобы начать работу</p>

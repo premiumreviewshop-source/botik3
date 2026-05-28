@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh } from '../../components/Icons'
+import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh, IconImage } from '../../components/Icons'
 import Button from '../../components/Button'
 
 type GenStatus = 'idle' | 'processing' | 'done'
@@ -304,7 +304,7 @@ export default function ModelDetail() {
         <SectionLabel>Хранилище модели</SectionLabel>
         {modelGallery.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center bg-[#080808] border border-[rgba(0,255,136,0.08)] rounded-[16px]">
-            <p className="text-[28px]">🖼️</p>
+            <IconImage size={32} color="rgba(0,255,136,0.25)" />
             <p className="text-[13px] text-[rgba(255,255,255,0.3)]">Здесь будут сгенерированные фото</p>
           </div>
         ) : (

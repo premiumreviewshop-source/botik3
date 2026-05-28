@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { type ReactNode } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconZap, IconPlus, IconCheck, IconUpload } from '../../components/Icons'
+import { IconBack, IconZap, IconPlus, IconCheck, IconUpload, IconFileText } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 import Input from '../../components/Input'
@@ -219,7 +219,7 @@ export default function AutoPostSchedule() {
                     {post.url ? (
                       <img src={post.url} className="w-14 h-14 rounded-[10px] object-cover" alt="" />
                     ) : (
-                      <div className="w-14 h-14 rounded-[10px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center text-[20px]">📝</div>
+                      <div className="w-14 h-14 rounded-[10px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center"><IconFileText size={22} color="rgba(0,255,136,0.4)" /></div>
                     )}
                     {packCount > 0 && (
                       <button onClick={() => setViewingPackPost(post)}
@@ -259,7 +259,7 @@ export default function AutoPostSchedule() {
                 <div className="flex flex-col gap-1.5">
                   {cps.map(cp => (
                     <div key={cp.post.id} className="flex items-center gap-2 p-2 bg-[rgba(0,255,136,0.03)] border border-[rgba(0,255,136,0.08)] rounded-[10px]">
-                      {cp.post.url ? <img src={cp.post.url} className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" alt="" /> : <div className="w-8 h-8 rounded-[6px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center text-[13px] flex-shrink-0">📝</div>}
+                      {cp.post.url ? <img src={cp.post.url} className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" alt="" /> : <div className="w-8 h-8 rounded-[6px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center flex-shrink-0"><IconFileText size={14} color="rgba(0,255,136,0.4)" /></div>}
                       <p className="flex-1 text-[11px] text-[rgba(255,255,255,0.5)] truncate">{cp.post.caption}</p>
                       {cp.price && <span className="text-[10px] font-black text-amber-400">⭐{cp.price}</span>}
                       <button onClick={() => openEdit(cp.post.id, cat)} className="w-8 h-8 rounded-[8px] bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center text-[15px] text-[rgba(0,255,136,0.7)] hover:bg-[rgba(0,255,136,0.15)] hover:text-[#00ff88] transition-all flex-shrink-0">✎</button>
@@ -360,7 +360,7 @@ export default function AutoPostSchedule() {
               : readyPosts.map(post => (
                 <button key={post.id} onClick={() => pickerCat && addFromReady(post, pickerCat)}
                   className="flex gap-3 p-3 bg-[rgba(0,255,136,0.04)] border border-[rgba(0,255,136,0.12)] rounded-[12px] text-left hover:border-[rgba(0,255,136,0.35)] transition-all">
-                  {post.url ? <img src={post.url} className="w-12 h-12 rounded-[8px] object-cover flex-shrink-0" alt="" /> : <div className="w-12 h-12 rounded-[8px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center text-[18px] flex-shrink-0">📝</div>}
+                  {post.url ? <img src={post.url} className="w-12 h-12 rounded-[8px] object-cover flex-shrink-0" alt="" /> : <div className="w-12 h-12 rounded-[8px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center flex-shrink-0"><IconFileText size={20} color="rgba(0,255,136,0.4)" /></div>}
                   <div className="flex-1 min-w-0"><p className="text-[12px] text-[rgba(255,255,255,0.7)] leading-snug line-clamp-3">{post.caption}</p></div>
                 </button>
               ))

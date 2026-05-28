@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh } from '../../components/Icons'
+import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh, IconBrain, IconImage, IconSparkle } from '../../components/Icons'
 import Button from '../../components/Button'
 import Input from '../../components/Input'
 import BottomSheet from '../../components/BottomSheet'
@@ -115,8 +115,8 @@ export default function CreateModel() {
           <button onClick={() => setMode('ai')}
             className="flex items-start gap-4 p-4 bg-[rgba(0,255,136,0.04)] border border-[rgba(0,255,136,0.2)] rounded-[18px] text-left
               hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.07)] transition-all duration-200">
-            <div className="w-12 h-12 rounded-[14px] bg-[rgba(0,255,136,0.1)] border border-[rgba(0,255,136,0.25)] flex items-center justify-center text-[22px] flex-shrink-0">
-              🤖
+            <div className="w-12 h-12 rounded-[14px] bg-[rgba(0,255,136,0.1)] border border-[rgba(0,255,136,0.25)] flex items-center justify-center flex-shrink-0">
+              <IconBrain size={24} color="rgba(0,255,136,0.8)" />
             </div>
             <div className="flex-1 pt-0.5">
               <p className="text-[15px] font-black mb-0.5">Создать с AI</p>
@@ -131,8 +131,8 @@ export default function CreateModel() {
           <button onClick={() => setMode('own')}
             className="flex items-start gap-4 p-4 bg-[#080808] border border-[rgba(255,255,255,0.08)] rounded-[18px] text-left
               hover:border-[rgba(0,255,136,0.25)] hover:bg-[rgba(0,255,136,0.02)] transition-all duration-200">
-            <div className="w-12 h-12 rounded-[14px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center text-[22px] flex-shrink-0">
-              🖼️
+            <div className="w-12 h-12 rounded-[14px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center flex-shrink-0">
+              <IconImage size={24} color="rgba(255,255,255,0.4)" />
             </div>
             <div className="flex-1 pt-0.5">
               <p className="text-[15px] font-black mb-0.5">Добавить свою модель</p>
@@ -160,9 +160,9 @@ export default function CreateModel() {
             </div>
           </div>
           <div className="flex flex-col items-center gap-6 px-5 py-8 text-center">
-            <div className="w-20 h-20 rounded-[24px] bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.25)] flex items-center justify-center text-4xl"
+            <div className="w-20 h-20 rounded-[24px] bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.25)] flex items-center justify-center"
               style={{ boxShadow: '0 0 32px rgba(0,255,136,0.1)' }}>
-              🎉
+              <IconSparkle size={36} color="#00ff88" />
             </div>
             <div>
               <p className="text-[26px] font-black mb-2 tracking-tight">Готово!</p>

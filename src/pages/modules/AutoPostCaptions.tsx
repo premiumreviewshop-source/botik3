@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconZap, IconPlus, IconTrash, IconCheck, IconRefresh } from '../../components/Icons'
+import { IconBack, IconZap, IconPlus, IconTrash, IconCheck, IconRefresh, IconFlame, IconEdit } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 
@@ -179,7 +179,7 @@ export default function AutoPostCaptions() {
           <SL>Готовый промпт</SL>
           <button onClick={() => setPreset('hot')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] border text-left transition-all ${preset === 'hot' ? 'border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.07)]' : 'border-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.28)]'}`}>
-            <span className="text-[20px]">🔥</span>
+            <IconFlame size={20} color={preset === 'hot' ? '#00ff88' : 'rgba(255,160,50,0.7)'} />
             <div className="flex-1">
               <p className={`text-[13px] font-bold ${preset === 'hot' ? 'text-[#00ff88]' : 'text-[rgba(255,255,255,0.65)]'}`}>Горячее описание</p>
               <p className="text-[11px] text-[rgba(255,255,255,0.28)] mt-0.5 line-clamp-1">{HOT_TEXT[lang].slice(0, 55)}…</p>
@@ -198,7 +198,7 @@ export default function AutoPostCaptions() {
           </div>
           <button onClick={() => setPreset('custom')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[12px] border text-left transition-all mb-2 ${preset === 'custom' ? 'border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.07)]' : 'border-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.28)]'}`}>
-            <span className="text-[17px]">✍️</span>
+            <IconEdit size={16} color={preset === 'custom' ? '#00ff88' : 'rgba(255,255,255,0.4)'} />
             <span className={`text-[13px] font-bold flex-1 ${preset === 'custom' ? 'text-[#00ff88]' : 'text-[rgba(255,255,255,0.65)]'}`}>Написать свой промпт</span>
             {preset === 'custom' && <IconCheck size={14} color="#00ff88" />}
           </button>

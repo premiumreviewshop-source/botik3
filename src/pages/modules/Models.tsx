@@ -1,5 +1,5 @@
 import { useApp } from '../../store/app'
-import { IconBack, IconPlus } from '../../components/Icons'
+import { IconBack, IconPlus, IconBrain } from '../../components/Icons'
 import Button from '../../components/Button'
 import type { AIModel } from '../../types'
 
@@ -40,9 +40,9 @@ export default function Models() {
 
       {models.length === 0 ? (
         <div className="flex flex-col items-center gap-5 px-5 py-12 text-center">
-          <div className="w-20 h-20 rounded-[24px] bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center text-4xl"
+          <div className="w-20 h-20 rounded-[24px] bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center"
             style={{ boxShadow: '0 0 24px rgba(0,255,136,0.08)' }}>
-            🤖
+            <IconBrain size={36} color="rgba(0,255,136,0.45)" />
           </div>
           <div>
             <p className="text-[19px] font-extrabold mb-2">Нет AI-моделей</p>
@@ -66,7 +66,7 @@ export default function Models() {
                 <div className="w-12 h-12 rounded-[14px] overflow-hidden bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center text-xl flex-shrink-0">
                   {m.previewUrl
                     ? <img src={m.previewUrl} className="w-full h-full object-cover" alt="" />
-                    : '🤖'}
+                    : <IconBrain size={22} color="rgba(0,255,136,0.5)" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] font-bold">{m.name}</p>
