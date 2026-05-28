@@ -27,6 +27,10 @@ const MOCK_BOTS: Bot[] = [
   { id: '2', name: 'AnaBot', handle: '@anabot_official', isActive: false, modules: ['AI Chat'] },
 ]
 
+const MOCK_MODELS: AIModel[] = [
+  { id: 'demo-1', name: 'Sofia Demo', status: 'ready', createdAt: '28 янв' },
+]
+
 const MOCK_TRANSACTIONS: Transaction[] = [
   { id: '1', type: 'topup', amount: 25, description: 'Пополнение через Stars', date: '15 янв' },
   { id: '2', type: 'spend', amount: -2.5, description: 'AI Messages — SofiaAI', date: '15 янв' },
@@ -76,7 +80,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [, setHistory] = useState<Page[]>(['home'])
   const [bots, setBots] = useState<Bot[]>(MOCK_BOTS)
   const [ppvItems, setPpvItems] = useState<PPVItem[]>([])
-  const [models, setModels] = useState<AIModel[]>([])
+  const [models, setModels] = useState<AIModel[]>(MOCK_MODELS)
   const [gallery, setGallery] = useState<GeneratedPhoto[]>([])
   const [uploads, setUploads] = useState<string[]>([])
   const [selectedBotId, setSelectedBotId] = useState<string | null>(MOCK_BOTS[0]?.id ?? null)

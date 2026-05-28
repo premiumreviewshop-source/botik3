@@ -25,9 +25,9 @@ function SL({ children }: { children: ReactNode }) {
 export default function AutoPostSchedule() {
   const { goBack, bots, readyPosts, setReadyPosts, uploads, setUploads, gallery } = useApp()
 
-  const [channelName, setChannelName] = useState('')
+  const [channelName, setChannelName] = useState('@mychannel')
   const [botId, setBotId] = useState(bots[0]?.id ?? '')
-  const [setupDone, setSetupDone] = useState(false)
+  const [setupDone, setSetupDone] = useState(true)
 
   const [catPosts, setCatPosts] = useState<Record<Category, CatPost[]>>({ free: [], paid: [], fix: [] })
   const [postsPerDay, setPostsPerDay] = useState(2)
@@ -43,6 +43,26 @@ export default function AutoPostSchedule() {
   const [pickerCat, setPickerCat] = useState<Category | null>(null)
   const [pickerSource, setPickerSource] = useState<'ready' | 'storage' | 'device'>('ready')
   const deviceInputRef = useRef<HTMLInputElement>(null)
+
+  const [viewingPackPost, setViewingPackPost] = useState<ReadyPost | null>(null)
+
+  const [showAddCustom, setShowAddCustom] = useState(false)
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null)
+  const [customCaption, setCustomCaption] = useState('')
+  const customPhotoRef = useRef<HTMLInputElement>(null)
+
+  const handleCustomPhotoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCustomPhoto(URL.createObjectURL(file))
+    e.target.value = ''
+  }
+
+  const saveCustomPost = () => {
+    if (!customPhoto) return
+    setReadyPosts([...readyPosts, { id: Date.now().toString(), url: customPhoto, caption: customCaption, createdAt: new Date().toLocaleDateString('ru') }])
+    setCustomPhoto(null); setCustomCaption(''); setShowAddCustom(false)
+  }
 
   const connectedBot = bots.find(b => b.id === botId)
 
@@ -171,6 +191,10 @@ export default function AutoPostSchedule() {
       <div className="px-5">
         <div className="flex items-center justify-between mb-3">
           <SL>Готовые посты ({readyPosts.length})</SL>
+          <button onClick={() => setShowAddCustom(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-[9px] border border-[rgba(0,255,136,0.25)] hover:bg-[rgba(0,255,136,0.07)] text-[11px] font-bold text-[rgba(0,255,136,0.7)] transition-all -mt-2">
+            <IconPlus size={11} color="rgba(0,255,136,0.7)" /> Свой пост
+          </button>
         </div>
         {readyPosts.length === 0 ? (
           <div className="p-4 bg-[#080808] border border-[rgba(0,255,136,0.08)] rounded-[14px] text-center">
@@ -178,16 +202,28 @@ export default function AutoPostSchedule() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {readyPosts.map(post => (
-              <div key={post.id} className="flex gap-3 p-3 bg-[#080808] border border-[rgba(0,255,136,0.1)] rounded-[14px]">
-                <img src={post.url} className="w-14 h-14 rounded-[10px] object-cover flex-shrink-0" alt="" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] text-[rgba(255,255,255,0.6)] leading-snug line-clamp-2">{post.caption}</p>
-                  <p className="text-[10px] text-[rgba(255,255,255,0.25)] mt-0.5">{post.createdAt}</p>
+            {readyPosts.map(post => {
+              const packCount = post.extraUrls?.length ?? 0
+              return (
+                <div key={post.id} className="flex gap-3 p-3 bg-[#080808] border border-[rgba(0,255,136,0.1)] rounded-[14px]">
+                  <div className="relative flex-shrink-0">
+                    <img src={post.url} className="w-14 h-14 rounded-[10px] object-cover" alt="" />
+                    {packCount > 0 && (
+                      <button onClick={() => setViewingPackPost(post)}
+                        className="absolute -bottom-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-[#00ff88] text-black text-[9px] font-black flex items-center justify-center"
+                        style={{ boxShadow: '0 0 6px rgba(0,255,136,0.7)' }}>
+                        +{packCount}
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-[rgba(255,255,255,0.6)] leading-snug line-clamp-2">{post.caption || <span className="text-[rgba(255,255,255,0.25)]">Без описания</span>}</p>
+                    <p className="text-[10px] text-[rgba(255,255,255,0.25)] mt-0.5">{post.createdAt}{packCount > 0 ? ` · ${packCount + 1} фото` : ''}</p>
+                  </div>
+                  <button onClick={() => setReadyPosts(readyPosts.filter(x => x.id !== post.id))} className="text-[rgba(255,80,80,0.5)] hover:text-[rgba(255,80,80,0.9)] transition-colors text-[16px] self-start">×</button>
                 </div>
-                <button onClick={() => setReadyPosts(readyPosts.filter(x => x.id !== post.id))} className="text-[rgba(255,80,80,0.5)] hover:text-[rgba(255,80,80,0.9)] transition-colors text-[16px] self-start">×</button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -340,6 +376,45 @@ export default function AutoPostSchedule() {
             <span className="text-[14px] font-bold text-[#00ff88]">Загрузить с телефона</span>
           </button>
         )}
+      </BottomSheet>
+
+      {/* Pack viewer sheet */}
+      <BottomSheet isOpen={!!viewingPackPost} onClose={() => setViewingPackPost(null)} title={viewingPackPost ? `Пак · ${(viewingPackPost.extraUrls?.length ?? 0) + 1} фото` : ''}>
+        {viewingPackPost && (
+          <div className="grid grid-cols-2 gap-2">
+            {[viewingPackPost.url, ...(viewingPackPost.extraUrls ?? [])].map((url, i) => (
+              <div key={i} className="relative aspect-[3/4] rounded-[12px] overflow-hidden bg-[#050505] border border-[rgba(0,255,136,0.15)]">
+                <img src={url} className="w-full h-full object-contain" alt="" />
+                {i === 0 && <span className="absolute bottom-1.5 left-1.5 text-[9px] font-black text-[#00ff88] bg-black/60 px-1.5 py-0.5 rounded">обложка</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </BottomSheet>
+
+      {/* Add custom post sheet */}
+      <BottomSheet isOpen={showAddCustom} onClose={() => { setShowAddCustom(false); setCustomPhoto(null); setCustomCaption('') }} title="Добавить свой пост">
+        <input ref={customPhotoRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleCustomPhotoFile} />
+        {customPhoto ? (
+          <div className="relative rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.2)] bg-black flex items-center justify-center">
+            <img src={customPhoto} className="max-w-full max-h-[45vh] w-auto h-auto block" alt="" />
+            <button onClick={() => setCustomPhoto(null)} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 border border-[rgba(255,80,80,0.4)] flex items-center justify-center text-[14px] text-[rgba(255,80,80,0.8)]">×</button>
+          </div>
+        ) : (
+          <button onClick={() => customPhotoRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-3 w-full py-10 rounded-[14px] border-2 border-dashed border-[rgba(0,255,136,0.25)] bg-[rgba(0,255,136,0.02)] hover:bg-[rgba(0,255,136,0.06)] transition-all">
+            <IconUpload size={24} color="#00ff88" />
+            <span className="text-[13px] font-bold text-[rgba(0,255,136,0.8)]">Выбрать фото или видео</span>
+          </button>
+        )}
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[1.5px] text-[rgba(0,255,136,0.55)] mb-2">Описание</p>
+          <textarea value={customCaption} onChange={e => setCustomCaption(e.target.value)} placeholder="Напиши описание вручную..." rows={4}
+            className="w-full bg-[#080808] border border-[rgba(0,255,136,0.2)] rounded-[12px] px-4 py-3 text-[13px] text-white resize-none outline-none focus:border-[rgba(0,255,136,0.5)] transition-all" />
+        </div>
+        <Button fullWidth disabled={!customPhoto} onClick={saveCustomPost}>
+          <IconCheck size={17} /> Добавить в готовые посты
+        </Button>
       </BottomSheet>
 
       {/* Edit post sheet */}
