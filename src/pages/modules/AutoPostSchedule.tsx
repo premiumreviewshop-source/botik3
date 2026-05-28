@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { type ReactNode } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconZap, IconPlus, IconCheck } from '../../components/Icons'
+import { IconBack, IconZap, IconPlus, IconCheck, IconUpload } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 import Input from '../../components/Input'
@@ -23,7 +23,7 @@ function SL({ children }: { children: ReactNode }) {
 }
 
 export default function AutoPostSchedule() {
-  const { goBack, bots, readyPosts, setReadyPosts } = useApp()
+  const { goBack, bots, readyPosts, setReadyPosts, uploads, setUploads, gallery } = useApp()
 
   const [channelName, setChannelName] = useState('')
   const [botId, setBotId] = useState(bots[0]?.id ?? '')
@@ -41,6 +41,8 @@ export default function AutoPostSchedule() {
   const [editCaption, setEditCaption] = useState('')
   const [editPrice, setEditPrice] = useState('')
   const [pickerCat, setPickerCat] = useState<Category | null>(null)
+  const [pickerSource, setPickerSource] = useState<'ready' | 'storage' | 'device'>('ready')
+  const deviceInputRef = useRef<HTMLInputElement>(null)
 
   const connectedBot = bots.find(b => b.id === botId)
 
@@ -86,6 +88,21 @@ export default function AutoPostSchedule() {
   const addFromReady = (post: ReadyPost, cat: Category) => {
     setCatPosts(prev => ({ ...prev, [cat]: [...prev[cat], { post }] }))
     setPickerCat(null)
+  }
+
+  const addFromUrl = (url: string, cat: Category) => {
+    const post: ReadyPost = { id: Date.now().toString(), url, caption: '', createdAt: new Date().toLocaleDateString('ru') }
+    setCatPosts(prev => ({ ...prev, [cat]: [...prev[cat], { post }] }))
+    setPickerCat(null)
+  }
+
+  const handleDeviceFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !pickerCat) return
+    const url = URL.createObjectURL(file)
+    setUploads([url, ...uploads])
+    addFromUrl(url, pickerCat)
+    e.target.value = ''
   }
 
   const removeFromCat = (cat: Category, postId: string) =>
@@ -184,8 +201,8 @@ export default function AutoPostSchedule() {
             <div key={cat} className="p-4 bg-[#080808] border border-[rgba(0,255,136,0.1)] rounded-[16px]">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2"><span className="text-[18px]">{info.emoji}</span><div><p className="text-[13px] font-bold">{info.label}</p><p className="text-[10px] text-[rgba(255,255,255,0.3)]">{info.desc} · {cps.length} постов</p></div></div>
-                <button onClick={() => setPickerCat(cat)} disabled={readyPosts.length === 0}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-[9px] border border-[rgba(0,255,136,0.25)] hover:bg-[rgba(0,255,136,0.07)] text-[11px] font-bold text-[rgba(0,255,136,0.7)] disabled:opacity-40 transition-all">
+                <button onClick={() => { setPickerCat(cat); setPickerSource('ready') }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-[9px] border border-[rgba(0,255,136,0.25)] hover:bg-[rgba(0,255,136,0.07)] text-[11px] font-bold text-[rgba(0,255,136,0.7)] transition-all">
                   <IconPlus size={11} color="rgba(0,255,136,0.7)" /> Добавить
                 </button>
               </div>
@@ -275,16 +292,54 @@ export default function AutoPostSchedule() {
 
       {/* Category picker sheet */}
       <BottomSheet isOpen={!!pickerCat} onClose={() => setPickerCat(null)} title={pickerCat ? `Добавить в "${CAT_INFO[pickerCat].label}"` : ''}>
-        <p className="text-[12px] text-[rgba(255,255,255,0.4)] -mt-1">Выбери пост из готовых</p>
-        <div className="flex flex-col gap-2">
-          {readyPosts.map(post => (
-            <button key={post.id} onClick={() => pickerCat && addFromReady(post, pickerCat)}
-              className="flex gap-3 p-3 bg-[rgba(0,255,136,0.04)] border border-[rgba(0,255,136,0.12)] rounded-[12px] text-left hover:border-[rgba(0,255,136,0.35)] transition-all">
-              <img src={post.url} className="w-12 h-12 rounded-[8px] object-cover flex-shrink-0" alt="" />
-              <div className="flex-1 min-w-0"><p className="text-[12px] text-[rgba(255,255,255,0.7)] leading-snug line-clamp-3">{post.caption}</p></div>
+        <input ref={deviceInputRef} type="file" accept="image/*" className="hidden" onChange={handleDeviceFile} />
+        {/* Source tabs */}
+        <div className="flex gap-1.5 -mt-1">
+          {(['ready', 'storage', 'device'] as const).map(src => (
+            <button key={src} onClick={() => setPickerSource(src)}
+              className={`flex-1 py-2 rounded-[10px] text-[10px] font-black border transition-all
+                ${pickerSource === src ? 'bg-[#00ff88] border-[#00ff88] text-black' : 'border-[rgba(0,255,136,0.2)] text-[rgba(255,255,255,0.4)] hover:border-[rgba(0,255,136,0.4)]'}`}>
+              {src === 'ready' ? '📋 Готовые' : src === 'storage' ? '🗂 Хранилище' : '📱 Устройство'}
             </button>
           ))}
         </div>
+
+        {pickerSource === 'ready' && (
+          <div className="flex flex-col gap-2">
+            {readyPosts.length === 0
+              ? <p className="text-[12px] text-[rgba(255,255,255,0.3)] text-center py-4">Нет готовых постов — сначала сгенерируй описания</p>
+              : readyPosts.map(post => (
+                <button key={post.id} onClick={() => pickerCat && addFromReady(post, pickerCat)}
+                  className="flex gap-3 p-3 bg-[rgba(0,255,136,0.04)] border border-[rgba(0,255,136,0.12)] rounded-[12px] text-left hover:border-[rgba(0,255,136,0.35)] transition-all">
+                  <img src={post.url} className="w-12 h-12 rounded-[8px] object-cover flex-shrink-0" alt="" />
+                  <div className="flex-1 min-w-0"><p className="text-[12px] text-[rgba(255,255,255,0.7)] leading-snug line-clamp-3">{post.caption}</p></div>
+                </button>
+              ))
+            }
+          </div>
+        )}
+
+        {pickerSource === 'storage' && (() => {
+          const storagePhotos = [...uploads, ...gallery.map(g => g.url)]
+          return storagePhotos.length === 0
+            ? <p className="text-[12px] text-[rgba(255,255,255,0.3)] text-center py-4">Хранилище пусто — загрузи фото через устройство</p>
+            : <div className="grid grid-cols-3 gap-2">
+                {storagePhotos.map((url, i) => (
+                  <button key={i} onClick={() => pickerCat && addFromUrl(url, pickerCat)}
+                    className="aspect-[3/4] rounded-[10px] overflow-hidden border-2 border-transparent hover:border-[#00ff88] bg-[#050505] transition-all">
+                    <img src={url} className="w-full h-full object-contain" alt="" />
+                  </button>
+                ))}
+              </div>
+        })()}
+
+        {pickerSource === 'device' && (
+          <button onClick={() => deviceInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 w-full py-10 rounded-[14px] border-2 border-dashed border-[rgba(0,255,136,0.3)] bg-[rgba(0,255,136,0.03)] hover:bg-[rgba(0,255,136,0.07)] transition-all">
+            <IconUpload size={22} color="#00ff88" />
+            <span className="text-[14px] font-bold text-[#00ff88]">Загрузить с телефона</span>
+          </button>
+        )}
       </BottomSheet>
 
       {/* Edit post sheet */}
