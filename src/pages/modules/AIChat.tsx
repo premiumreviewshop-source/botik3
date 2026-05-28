@@ -29,8 +29,11 @@ export default function AIChat() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promptType, persona.name, persona.age, persona.country, lang])
 
-  const availableBots = bots.filter(b => b.modules.length === 0 || b.modules.includes('AI Chat'))
   const activeChatters = bots.filter(b => b.modules.includes('AI Chat') && b.isActive)
+  const availableBots = bots.filter(b =>
+    (b.modules.length === 0 || b.modules.includes('AI Chat')) &&
+    !(b.modules.includes('AI Chat') && b.isActive)
+  )
 
   const handleSave = async () => {
     if (selectedBotId) {
