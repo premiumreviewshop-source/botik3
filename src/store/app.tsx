@@ -6,6 +6,7 @@ const PAGE_DEPTH: Record<Page, number> = {
   'bots/add': 1,
   'bots/detail': 2,
   'module/aichat-ppv': 1, 'module/models': 1, 'module/autopost': 1,
+  'module/analytics': 1,
   'module/aichat': 2, 'module/ppv': 2,
   'module/models/create': 2,
   'module/models/detail': 2,

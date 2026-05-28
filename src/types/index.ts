@@ -12,6 +12,7 @@ export type Page =
   | 'module/models'
   | 'module/models/create'
   | 'module/models/detail'
+  | 'module/analytics'
   | 'module/autopost'
   | 'module/autopost/captions'
   | 'module/autopost/schedule'

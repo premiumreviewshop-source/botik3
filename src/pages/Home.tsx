@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../store/app'
-import { IconBrain, IconPhoto, IconChevronRight, IconPlus, IconZap } from '../components/Icons'
+import { IconBrain, IconPhoto, IconChevronRight, IconPlus, IconZap, IconInfo } from '../components/Icons'
 import StatusPill from '../components/StatusPill'
 
 function GlareCard({ children, className, onClick, style, delay = 0 }: {
@@ -61,7 +61,7 @@ export default function Home() {
   const [activeModule, setActiveModule] = useState(0)
   const handleModuleScroll = () => {
     if (!scrollRef.current) return
-    setActiveModule(Math.min(Math.round(scrollRef.current.scrollLeft / 300), 2))
+    setActiveModule(Math.min(Math.round(scrollRef.current.scrollLeft / 300), 3))
   }
 
   const modules = [
@@ -91,6 +91,15 @@ export default function Home() {
       page: 'module/autopost' as const,
       tag: 'AI · Post',
       stat: 'AUTO',
+    },
+    {
+      id: 'analytics',
+      title: 'Аналитика',
+      desc: 'Сообщения, посты, PPV-продажи — вся статистика в одном месте',
+      icon: IconInfo,
+      page: 'module/analytics' as const,
+      tag: 'Stats',
+      stat: 'LIVE',
     },
   ]
 
@@ -169,7 +178,7 @@ export default function Home() {
         {/* Scroll dots */}
         <div className="flex justify-center gap-2 mt-3 px-5">
           {modules.map((_, i) => (
-            <span key={i} className={`rounded-full transition-all duration-300 ${i === activeModule ? 'w-5 h-1.5 bg-[#00ff88]' : 'w-1.5 h-1.5 bg-[rgba(255,255,255,0.15)]'}`}
+            <span key={i} className={`rounded-full transition-all duration-300 ${i === activeModule ? 'w-4 h-1.5 bg-[#00ff88]' : 'w-1.5 h-1.5 bg-[rgba(255,255,255,0.15)]'}`}
               style={i === activeModule ? { boxShadow: '0 0 6px rgba(0,255,136,0.8)' } : {}} />
           ))}
         </div>
