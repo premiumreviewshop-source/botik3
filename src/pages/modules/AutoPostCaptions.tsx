@@ -5,13 +5,12 @@ import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 
 type Lang = 'en' | 'ru' | 'tr'
-type Preset = 'hot' | 'romantic' | 'playful' | 'mystery' | 'custom'
+type Preset = 'hot' | 'custom'
 
-const PRESETS: Record<Exclude<Preset,'custom'>, { label: string; emoji: string; text: Record<Lang,string> }> = {
-  hot:     { label: 'Горячее описание', emoji: '🔥', text: { en: "You can't handle what's coming tonight 🔥 VIP drop — first come first served.", ru: "Ты не готов к тому, что будет ночью 🔥 Эксклюзив в VIP — кто первый, того и тапки.", tr: "Bu gece hazır değilsin 🔥 VIP'te özel içerik." } },
-  romantic:{ label: 'Романтичное',      emoji: '💕', text: { en: "Every message makes my heart skip 💕 Thinking about you all day...", ru: "Каждое сообщение заставляет сердце биться 💕 Думала о тебе весь день...", tr: "Her mesaj kalbimi hızlandırıyor 💕 Seni bütün gün düşündüm..." } },
-  playful: { label: 'Игривое',          emoji: '😏', text: { en: "Guess what I'm hiding tonight 😏 Tip to unlock the full set~", ru: "Угадай, что прячу 😏 Тип для доступа к полному сету~", tr: "Ne sakladığımı tahmin et 😏 Bugün tam sete erişim~" } },
-  mystery: { label: 'Загадочное',       emoji: '✨', text: { en: "There's a version of me you haven't seen yet ✨ Tonight you find out.", ru: "Есть версия меня, которую ещё не видел ✨ Сегодня ночью узнаешь.", tr: "Henüz görmediğin bir ben var ✨ Bu gece öğreniyorsun." } },
+const HOT_TEXT: Record<Lang, string> = {
+  en: "You can't handle what's coming tonight 🔥 VIP drop — first come first served.",
+  ru: "Ты не готов к тому, что будет ночью 🔥 Эксклюзив в VIP — кто первый, того и тапки.",
+  tr: "Bu gece hazır değilsin 🔥 VIP'te özel içerik.",
 }
 function SL({ children }: { children: string }) {
   return <p className="text-[9px] font-black uppercase tracking-[1.5px] text-[rgba(0,255,136,0.55)] mb-2">{children}</p>
@@ -76,7 +75,7 @@ export default function AutoPostCaptions() {
     await new Promise(r => setTimeout(r, 1300))
     let text = preset === 'custom'
       ? `${customText}\n\n[AI сгенерировал описание на основе промпта]`
-      : (PRESETS[preset as Exclude<Preset,'custom'>]?.text[lang] ?? '')
+      : HOT_TEXT[lang]
     if (useFooter && footerText.trim()) {
       const gap = '\n'.repeat(gapLines + 1)
       text = `${text}${gap}${footerText}`
@@ -175,35 +174,36 @@ export default function AutoPostCaptions() {
           )}
         </div>
 
-        {/* Prompt presets */}
+        {/* Готовый промпт — only hot */}
+        <div>
+          <SL>Готовый промпт</SL>
+          <button onClick={() => setPreset('hot')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] border text-left transition-all ${preset === 'hot' ? 'border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.07)]' : 'border-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.28)]'}`}>
+            <span className="text-[20px]">🔥</span>
+            <div className="flex-1">
+              <p className={`text-[13px] font-bold ${preset === 'hot' ? 'text-[#00ff88]' : 'text-[rgba(255,255,255,0.65)]'}`}>Горячее описание</p>
+              <p className="text-[11px] text-[rgba(255,255,255,0.28)] mt-0.5 line-clamp-1">{HOT_TEXT[lang].slice(0, 55)}…</p>
+            </div>
+            {preset === 'hot' && <IconCheck size={14} color="#00ff88" />}
+          </button>
+        </div>
+
+        {/* Свой промпт — own section */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <SL>Готовый промпт</SL>
+            <SL>Свой промпт</SL>
             {savedPrompts.length > 0 && (
               <button onClick={() => setShowSavedPrompts(true)} className="text-[10px] text-[rgba(0,255,136,0.55)] hover:text-[#00ff88] transition-colors -mt-2">Мои промпты →</button>
             )}
           </div>
-          <div className="flex flex-col gap-1.5">
-            {(Object.keys(PRESETS) as Exclude<Preset,'custom'>[]).map(id => {
-              const p = PRESETS[id]
-              return (
-                <button key={id} onClick={() => setPreset(id)}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-[12px] border text-left transition-all ${preset === id ? 'border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.07)]' : 'border-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.28)]'}`}>
-                  <span className="text-[17px]">{p.emoji}</span>
-                  <span className={`text-[13px] font-bold flex-1 ${preset === id ? 'text-[#00ff88]' : 'text-[rgba(255,255,255,0.65)]'}`}>{p.label}</span>
-                  {preset === id && <IconCheck size={14} color="#00ff88" />}
-                </button>
-              )
-            })}
-            <button onClick={() => setPreset('custom')}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-[12px] border text-left transition-all ${preset === 'custom' ? 'border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.07)]' : 'border-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.28)]'}`}>
-              <span className="text-[17px]">✍️</span>
-              <span className={`text-[13px] font-bold flex-1 ${preset === 'custom' ? 'text-[#00ff88]' : 'text-[rgba(255,255,255,0.65)]'}`}>Свой промпт</span>
-              {preset === 'custom' && <IconCheck size={14} color="#00ff88" />}
-            </button>
-          </div>
+          <button onClick={() => setPreset('custom')}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[12px] border text-left transition-all mb-2 ${preset === 'custom' ? 'border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.07)]' : 'border-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.28)]'}`}>
+            <span className="text-[17px]">✍️</span>
+            <span className={`text-[13px] font-bold flex-1 ${preset === 'custom' ? 'text-[#00ff88]' : 'text-[rgba(255,255,255,0.65)]'}`}>Написать свой промпт</span>
+            {preset === 'custom' && <IconCheck size={14} color="#00ff88" />}
+          </button>
           {preset === 'custom' && (
-            <div className="mt-2">
+            <div>
               <textarea value={customText} onChange={e => setCustomText(e.target.value)} placeholder="Напиши свой промпт для AI..." rows={3}
                 className="w-full bg-[#080808] border border-[rgba(0,255,136,0.2)] rounded-[12px] px-4 py-3 text-[13px] text-white resize-none outline-none focus:border-[rgba(0,255,136,0.5)] transition-all mb-2" />
               {!showSavePrompt ? (

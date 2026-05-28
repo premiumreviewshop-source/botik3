@@ -196,28 +196,34 @@ export default function CreateModel() {
         <div className="px-5">
           <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)] mb-3">Фото модели</p>
           <input ref={ownFileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleOwnFile} />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollSnapType: 'x mandatory' }}>
+            {/* Add button — always first */}
+            <button onClick={() => ownFileRef.current?.click()}
+              className="w-24 h-32 flex-shrink-0 rounded-[14px] border-2 border-dashed border-[rgba(0,255,136,0.25)] bg-[#080808]
+                hover:border-[rgba(0,255,136,0.5)] hover:bg-[rgba(0,255,136,0.05)] transition-all duration-200
+                flex flex-col items-center justify-center gap-2"
+              style={{ scrollSnapAlign: 'start' }}>
+              <div className="w-10 h-10 rounded-full bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center">
+                <IconPlus size={18} color="rgba(0,255,136,0.6)" />
+              </div>
+              <p className="text-[10px] font-bold text-[rgba(255,255,255,0.3)]">Добавить</p>
+            </button>
             {ownPhotos.map((url, idx) => (
-              <div key={idx} className="aspect-[3/4] relative rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.25)] bg-[#050505]">
+              <div key={idx} className="w-24 h-32 flex-shrink-0 relative rounded-[14px] overflow-hidden border border-[rgba(0,255,136,0.3)] bg-[#050505]"
+                style={{ scrollSnapAlign: 'start' }}>
                 <img src={url} className="w-full h-full object-cover" alt="" />
                 <button onClick={() => removeOwnPhoto(idx)}
                   className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
-                  <IconTrash size={11} color="#00ff88" />
+                  <IconTrash size={11} color="#ff5555" />
                 </button>
+                <div className="absolute bottom-1.5 left-1.5 w-5 h-5 rounded-full bg-[#00ff88] flex items-center justify-center text-[9px] font-black text-black">
+                  {idx + 1}
+                </div>
               </div>
             ))}
-            <button onClick={() => ownFileRef.current?.click()}
-              className="aspect-[3/4] rounded-[12px] border-2 border-dashed border-[rgba(0,255,136,0.15)] bg-[#080808]
-                hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.04)] transition-all duration-200
-                flex flex-col items-center justify-center gap-1.5">
-              <div className="w-8 h-8 rounded-full bg-[rgba(0,255,136,0.07)] flex items-center justify-center">
-                <IconPlus size={16} color="rgba(0,255,136,0.5)" />
-              </div>
-              <p className="text-[9px] text-[rgba(255,255,255,0.25)]">Добавить</p>
-            </button>
           </div>
           {ownPhotos.length === 0 && (
-            <p className="text-[11px] text-[rgba(255,255,255,0.25)] mt-2">Загрузи хотя бы одно фото</p>
+            <p className="text-[11px] text-[rgba(255,255,255,0.25)] mt-1">Загрузи хотя бы одно фото</p>
           )}
         </div>
 
