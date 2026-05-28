@@ -78,7 +78,8 @@ export interface StoragePhoto {
 
 export interface ReadyPost {
   id: string
-  url: string
+  url?: string
+  extraUrls?: string[]
   caption: string
   price?: number
   createdAt: string

@@ -59,8 +59,8 @@ export default function AutoPostSchedule() {
   }
 
   const saveCustomPost = () => {
-    if (!customPhoto) return
-    setReadyPosts([...readyPosts, { id: Date.now().toString(), url: customPhoto, caption: customCaption, createdAt: new Date().toLocaleDateString('ru') }])
+    if (!customPhoto && !customCaption.trim()) return
+    setReadyPosts([...readyPosts, { id: Date.now().toString(), url: customPhoto ?? undefined, caption: customCaption, createdAt: new Date().toLocaleDateString('ru') }])
     setCustomPhoto(null); setCustomCaption(''); setShowAddCustom(false)
   }
 
@@ -207,7 +207,11 @@ export default function AutoPostSchedule() {
               return (
                 <div key={post.id} className="flex gap-3 p-3 bg-[#080808] border border-[rgba(0,255,136,0.1)] rounded-[14px]">
                   <div className="relative flex-shrink-0">
-                    <img src={post.url} className="w-14 h-14 rounded-[10px] object-cover" alt="" />
+                    {post.url ? (
+                      <img src={post.url} className="w-14 h-14 rounded-[10px] object-cover" alt="" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-[10px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center text-[20px]">📝</div>
+                    )}
                     {packCount > 0 && (
                       <button onClick={() => setViewingPackPost(post)}
                         className="absolute -bottom-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-[#00ff88] text-black text-[9px] font-black flex items-center justify-center"
@@ -246,7 +250,7 @@ export default function AutoPostSchedule() {
                 <div className="flex flex-col gap-1.5">
                   {cps.map(cp => (
                     <div key={cp.post.id} className="flex items-center gap-2 p-2 bg-[rgba(0,255,136,0.03)] border border-[rgba(0,255,136,0.08)] rounded-[10px]">
-                      <img src={cp.post.url} className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" alt="" />
+                      {cp.post.url ? <img src={cp.post.url} className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" alt="" /> : <div className="w-8 h-8 rounded-[6px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center text-[13px] flex-shrink-0">📝</div>}
                       <p className="flex-1 text-[11px] text-[rgba(255,255,255,0.5)] truncate">{cp.post.caption}</p>
                       {cp.price && <span className="text-[10px] font-black text-amber-400">⭐{cp.price}</span>}
                       <button onClick={() => openEdit(cp.post.id, cat)} className="w-8 h-8 rounded-[8px] bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center text-[15px] text-[rgba(0,255,136,0.7)] hover:bg-[rgba(0,255,136,0.15)] hover:text-[#00ff88] transition-all flex-shrink-0">✎</button>
@@ -347,7 +351,7 @@ export default function AutoPostSchedule() {
               : readyPosts.map(post => (
                 <button key={post.id} onClick={() => pickerCat && addFromReady(post, pickerCat)}
                   className="flex gap-3 p-3 bg-[rgba(0,255,136,0.04)] border border-[rgba(0,255,136,0.12)] rounded-[12px] text-left hover:border-[rgba(0,255,136,0.35)] transition-all">
-                  <img src={post.url} className="w-12 h-12 rounded-[8px] object-cover flex-shrink-0" alt="" />
+                  {post.url ? <img src={post.url} className="w-12 h-12 rounded-[8px] object-cover flex-shrink-0" alt="" /> : <div className="w-12 h-12 rounded-[8px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center text-[18px] flex-shrink-0">📝</div>}
                   <div className="flex-1 min-w-0"><p className="text-[12px] text-[rgba(255,255,255,0.7)] leading-snug line-clamp-3">{post.caption}</p></div>
                 </button>
               ))
@@ -412,7 +416,7 @@ export default function AutoPostSchedule() {
           <textarea value={customCaption} onChange={e => setCustomCaption(e.target.value)} placeholder="Напиши описание вручную..." rows={4}
             className="w-full bg-[#080808] border border-[rgba(0,255,136,0.2)] rounded-[12px] px-4 py-3 text-[13px] text-white resize-none outline-none focus:border-[rgba(0,255,136,0.5)] transition-all" />
         </div>
-        <Button fullWidth disabled={!customPhoto} onClick={saveCustomPost}>
+        <Button fullWidth disabled={!customPhoto && !customCaption.trim()} onClick={saveCustomPost}>
           <IconCheck size={17} /> Добавить в готовые посты
         </Button>
       </BottomSheet>
