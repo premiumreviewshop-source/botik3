@@ -24,7 +24,7 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export default function ModelDetail() {
-  const { goBack, models, selectedModelId, bots, gallery, setGallery, uploads, setUploads } = useApp()
+  const { goBack, models, selectedModelId, bots, setBots, gallery, setGallery, uploads, setUploads, navigate } = useApp()
 
   const model = models.find(m => m.id === selectedModelId)
 
@@ -131,6 +131,7 @@ export default function ModelDetail() {
   }
 
   const connectedBot = bots.find(b => b.id === connectedBotId)
+  const availableBots = bots.filter(b => b.modules.length === 0 || b.modules.includes('AI Models'))
 
   return (
     <div className="flex flex-col gap-5 pt-4">
@@ -320,27 +321,37 @@ export default function ModelDetail() {
       {/* ── Подключённый бот ── */}
       <div className="px-5">
         <SectionLabel>Подключённый бот</SectionLabel>
-        <div className="flex flex-col gap-2">
-          {bots.map(b => (
-            <button key={b.id} onClick={() => setConnectedBotId(b.id)}
-              className={`flex items-center gap-3 p-3.5 rounded-[14px] border transition-all duration-150 text-left
-                ${connectedBotId === b.id
-                  ? 'border-[rgba(0,255,136,0.4)] bg-[rgba(0,255,136,0.06)]'
-                  : 'border-[rgba(0,255,136,0.1)] bg-[#080808] hover:border-[rgba(0,255,136,0.25)]'}`}>
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${b.isActive ? 'bg-[#00ff88]' : 'bg-[rgba(255,255,255,0.2)]'}`}
-                style={b.isActive ? { boxShadow: '0 0 5px rgba(0,255,136,1)' } : {}} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold">{b.name}</p>
-                <p className="text-[11px] text-[rgba(255,255,255,0.28)]">{b.handle}</p>
-              </div>
-              {connectedBotId === b.id && (
-                <span className="text-[10px] font-black text-[#00ff88] bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.3)] rounded-full px-2.5 py-0.5 uppercase tracking-[0.5px]">
-                  Активен
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        {availableBots.length === 0 ? (
+          <div className="p-3 bg-[rgba(251,191,36,0.05)] border border-[rgba(251,191,36,0.2)] rounded-[12px]">
+            <p className="text-[12px] text-amber-400 font-bold mb-1">Нет доступных ботов</p>
+            <p className="text-[11px] text-[rgba(255,255,255,0.4)]">Все боты заняты. <button onClick={() => navigate('bots')} className="text-[rgba(0,255,136,0.7)] underline">Перейди в Боты</button> и сбрось нужный.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {availableBots.map(b => (
+              <button key={b.id} onClick={() => {
+                setConnectedBotId(b.id)
+                setBots(bots.map(x => x.id === b.id ? { ...x, modules: [...new Set([...x.modules, 'AI Models'])] } : x))
+              }}
+                className={`flex items-center gap-3 p-3.5 rounded-[14px] border transition-all duration-150 text-left
+                  ${connectedBotId === b.id
+                    ? 'border-[rgba(0,255,136,0.4)] bg-[rgba(0,255,136,0.06)]'
+                    : 'border-[rgba(0,255,136,0.1)] bg-[#080808] hover:border-[rgba(0,255,136,0.25)]'}`}>
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${b.isActive ? 'bg-[#00ff88]' : 'bg-[rgba(255,255,255,0.2)]'}`}
+                  style={b.isActive ? { boxShadow: '0 0 5px rgba(0,255,136,1)' } : {}} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold">{b.name}</p>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.28)]">{b.handle}</p>
+                </div>
+                {connectedBotId === b.id && (
+                  <span className="text-[10px] font-black text-[#00ff88] bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.3)] rounded-full px-2.5 py-0.5 uppercase tracking-[0.5px]">
+                    Активен
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
         {connectedBot && (
           <p className="text-[11px] text-[rgba(255,255,255,0.3)] mt-2 pl-1">
             Фото из хранилища будут доступны в боте <span className="text-[rgba(0,255,136,0.6)]">{connectedBot.handle}</span>

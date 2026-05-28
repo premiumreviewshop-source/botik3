@@ -14,7 +14,7 @@ const PERSONA_FIELDS = [
 ]
 
 export default function AIChat() {
-  const { bots, selectedBotId, setSelectedBotId, goBack } = useApp()
+  const { bots, setBots, selectedBotId, setSelectedBotId, goBack, navigate } = useApp()
   const [promptType, setPromptType] = useState<PromptType>('ready')
   const [lang, setLang] = useState<'en' | 'ru' | 'tr'>('en')
   const [persona, setPersona] = useState<Record<string, string>>({ name: '', age: '', country: '' })
@@ -29,7 +29,12 @@ export default function AIChat() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promptType, persona.name, persona.age, persona.country, lang])
 
+  const availableBots = bots.filter(b => b.modules.length === 0 || b.modules.includes('AI Chat'))
+
   const handleSave = async () => {
+    if (selectedBotId) {
+      setBots(bots.map(b => b.id === selectedBotId ? { ...b, modules: [...new Set([...b.modules, 'AI Chat'])] } : b))
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -50,19 +55,26 @@ export default function AIChat() {
       {/* Bot selector */}
       <div className="px-5">
         <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)] mb-2">Бот</p>
-        <div className="scroll-x flex gap-2 pb-1">
-          {bots.map(b => (
-            <button key={b.id} onClick={() => setSelectedBotId(b.id)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-[13px] font-bold border transition-all duration-200 ${
-                selectedBotId === b.id
-                  ? 'bg-[#00ff88] border-[#00ff88] text-black shadow-[0_0_16px_rgba(0,255,136,0.4)]'
-                  : 'bg-[#080808] border-[rgba(0,255,136,0.18)] text-[rgba(255,255,255,0.6)] hover:border-[rgba(0,255,136,0.4)]'
-              }`}
-              style={{ scrollSnapAlign: 'start' }}>
-              {b.name}
-            </button>
-          ))}
-        </div>
+        {availableBots.length === 0 ? (
+          <div className="p-3 bg-[rgba(251,191,36,0.05)] border border-[rgba(251,191,36,0.2)] rounded-[12px]">
+            <p className="text-[12px] text-amber-400 font-bold mb-1">Нет доступных ботов</p>
+            <p className="text-[11px] text-[rgba(255,255,255,0.4)]">Все боты заняты другими модулями. <button onClick={() => navigate('bots')} className="text-[rgba(0,255,136,0.7)] underline">Перейди в Боты</button> и сбрось нужный.</p>
+          </div>
+        ) : (
+          <div className="scroll-x flex gap-2 pb-1">
+            {availableBots.map(b => (
+              <button key={b.id} onClick={() => setSelectedBotId(b.id)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-[13px] font-bold border transition-all duration-200 ${
+                  selectedBotId === b.id
+                    ? 'bg-[#00ff88] border-[#00ff88] text-black shadow-[0_0_16px_rgba(0,255,136,0.4)]'
+                    : 'bg-[#080808] border-[rgba(0,255,136,0.18)] text-[rgba(255,255,255,0.6)] hover:border-[rgba(0,255,136,0.4)]'
+                }`}
+                style={{ scrollSnapAlign: 'start' }}>
+                {b.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Prompt type */}
