@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconZap, IconPlus, IconTrash, IconCheck, IconRefresh, IconFlame, IconEdit } from '../../components/Icons'
+import { IconBack, IconZap, IconPlus, IconTrash, IconCheck, IconRefresh, IconFlame, IconEdit, IconLink } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 
@@ -252,7 +252,7 @@ export default function AutoPostCaptions() {
                 className="w-full bg-[#080808] border border-[rgba(0,255,136,0.2)] rounded-[12px] px-4 py-3 text-[12px] text-white resize-none outline-none focus:border-[rgba(0,255,136,0.5)] transition-all" />
               {/* Tools row */}
               <div className="flex gap-2 flex-wrap">
-                <button onClick={() => setShowLinkForm(v => !v)} className="px-3 py-1.5 rounded-[8px] border border-[rgba(0,255,136,0.2)] text-[11px] text-[rgba(0,255,136,0.7)] hover:bg-[rgba(0,255,136,0.07)] transition-all">🔗 Ссылка</button>
+                <button onClick={() => setShowLinkForm(v => !v)} className="flex items-center gap-1 px-3 py-1.5 rounded-[8px] border border-[rgba(0,255,136,0.2)] text-[11px] text-[rgba(0,255,136,0.7)] hover:bg-[rgba(0,255,136,0.07)] transition-all"><IconLink size={12} color="rgba(0,255,136,0.7)" /> Ссылка</button>
                 <button onClick={() => setFooterText(t => t + '\n')} className="px-3 py-1.5 rounded-[8px] border border-[rgba(0,255,136,0.2)] text-[11px] text-[rgba(255,255,255,0.4)] hover:bg-[rgba(0,255,136,0.05)] transition-all">↵ Перенос</button>
               </div>
               {showLinkForm && (

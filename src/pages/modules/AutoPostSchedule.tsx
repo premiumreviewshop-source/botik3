@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { type ReactNode } from 'react'
 import { useApp } from '../../store/app'
-import { IconBack, IconZap, IconPlus, IconCheck, IconUpload, IconFileText } from '../../components/Icons'
+import { IconBack, IconZap, IconPlus, IconCheck, IconUpload, IconFileText, IconImage, IconStar, IconPin, IconEdit, IconInfo, IconGallery } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 import Input from '../../components/Input'
@@ -11,10 +11,10 @@ type Category = 'free' | 'paid' | 'fix'
 interface CatPost { post: ReadyPost; price?: number }
 interface PlanPost { id: string; date: string; time: string; category: Category; editing: boolean }
 
-const CAT_INFO: Record<Category, { label: string; emoji: string; desc: string }> = {
-  free: { label: 'Обычный', emoji: '📸', desc: 'Бесплатный контент' },
-  paid: { label: 'Платный', emoji: '💎', desc: 'PPV — платный контент' },
-  fix:  { label: 'Фикс пост', emoji: '📌', desc: 'Закреплённый пост' },
+const CAT_INFO = {
+  free: { label: 'Обычный', Icon: IconImage, desc: 'Бесплатный контент' },
+  paid: { label: 'Платный', Icon: IconStar, desc: 'PPV — платный контент' },
+  fix:  { label: 'Фикс пост', Icon: IconPin, desc: 'Закреплённый пост' },
 }
 const TIMES = ['09:00','11:30','13:00','15:30','17:00','19:00','20:30','22:00']
 
@@ -145,7 +145,7 @@ export default function AutoPostSchedule() {
           <p className="text-[13px] text-[rgba(255,255,255,0.4)]">Для запуска автопостинга нужно подключить твой Telegram-канал</p>
           <Input label="Username канала" value={channelName} onChange={setChannelName} placeholder="@mychannel" />
           <div className="p-4 bg-[rgba(251,191,36,0.05)] border border-[rgba(251,191,36,0.2)] rounded-[14px]">
-            <p className="text-[12px] font-bold text-amber-400 mb-1.5">⚠️ Обязательно</p>
+            <div className="flex items-center gap-1.5 text-[12px] font-bold text-amber-400 mb-1.5"><IconInfo size={13} color="rgb(251,191,36)" /> Обязательно</div>
             <p className="text-[12px] text-[rgba(255,255,255,0.5)] leading-relaxed">
               Добавь нашего бота как <span className="text-white font-bold">администратора</span> в канал с правом публикации постов. Без этого автопостинг не запустится.
             </p>
@@ -193,7 +193,7 @@ export default function AutoPostSchedule() {
           <p className="text-[9px] font-black uppercase tracking-[2px] text-[rgba(0,255,136,0.5)]">Посты + Автопостинг</p>
           <h1 className="text-[20px] font-black tracking-tight">Автопостинг</h1>
         </div>
-        <button onClick={() => setSetupDone(false)} className="text-[10px] text-[rgba(0,255,136,0.5)] hover:text-[#00ff88] transition-colors">{channelName} ✎</button>
+        <button onClick={() => setSetupDone(false)} className="flex items-center gap-1 text-[10px] text-[rgba(0,255,136,0.5)] hover:text-[#00ff88] transition-colors">{channelName} <IconEdit size={10} color="currentColor" /></button>
       </div>
 
       {/* ── Готовые посты ── */}
@@ -249,7 +249,7 @@ export default function AutoPostSchedule() {
           return (
             <div key={cat} className="p-4 bg-[#080808] border border-[rgba(0,255,136,0.1)] rounded-[16px]">
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2"><span className="text-[18px]">{info.emoji}</span><div><p className="text-[13px] font-bold">{info.label}</p><p className="text-[10px] text-[rgba(255,255,255,0.3)]">{info.desc} · {cps.length} постов</p></div></div>
+                <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-[8px] bg-[rgba(0,255,136,0.08)] flex items-center justify-center"><info.Icon size={16} color="rgba(0,255,136,0.8)" /></div><div><p className="text-[13px] font-bold">{info.label}</p><p className="text-[10px] text-[rgba(255,255,255,0.3)]">{info.desc} · {cps.length} постов</p></div></div>
                 <button onClick={() => { setPickerCat(cat); setPickerSource('ready') }}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-[9px] border border-[rgba(0,255,136,0.25)] hover:bg-[rgba(0,255,136,0.07)] text-[11px] font-bold text-[rgba(0,255,136,0.7)] transition-all">
                   <IconPlus size={11} color="rgba(0,255,136,0.7)" /> Добавить
@@ -261,8 +261,8 @@ export default function AutoPostSchedule() {
                     <div key={cp.post.id} className="flex items-center gap-2 p-2 bg-[rgba(0,255,136,0.03)] border border-[rgba(0,255,136,0.08)] rounded-[10px]">
                       {cp.post.url ? <img src={cp.post.url} className="w-8 h-8 rounded-[6px] object-cover flex-shrink-0" alt="" /> : <div className="w-8 h-8 rounded-[6px] bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.15)] flex items-center justify-center flex-shrink-0"><IconFileText size={14} color="rgba(0,255,136,0.4)" /></div>}
                       <p className="flex-1 text-[11px] text-[rgba(255,255,255,0.5)] truncate">{cp.post.caption}</p>
-                      {cp.price && <span className="text-[10px] font-black text-amber-400">⭐{cp.price}</span>}
-                      <button onClick={() => openEdit(cp.post.id, cat)} className="w-8 h-8 rounded-[8px] bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center text-[15px] text-[rgba(0,255,136,0.7)] hover:bg-[rgba(0,255,136,0.15)] hover:text-[#00ff88] transition-all flex-shrink-0">✎</button>
+                      {cp.price && <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-amber-400"><IconStar size={9} color="rgb(251,191,36)" />{cp.price}</span>}
+                      <button onClick={() => openEdit(cp.post.id, cat)} className="w-8 h-8 rounded-[8px] bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center hover:bg-[rgba(0,255,136,0.15)] transition-all flex-shrink-0"><IconEdit size={13} color="rgba(0,255,136,0.7)" /></button>
                       <button onClick={() => removeFromCat(cat, cp.post.id)} className="w-8 h-8 rounded-[8px] bg-[rgba(255,80,80,0.07)] border border-[rgba(255,80,80,0.2)] flex items-center justify-center text-[16px] text-[rgba(255,80,80,0.6)] hover:bg-[rgba(255,80,80,0.15)] hover:text-[rgba(255,80,80,1)] transition-all flex-shrink-0">×</button>
                     </div>
                   ))}
@@ -289,7 +289,10 @@ export default function AutoPostSchedule() {
           <p className="text-[9px] font-black uppercase tracking-[1.5px] text-[rgba(0,255,136,0.45)] mb-2">Очерёдность</p>
           <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px]">
             {sequence.length === 0 ? <p className="text-[12px] text-[rgba(255,255,255,0.2)]">Добавь категории</p>
-              : sequence.map((cat, i) => <span key={i} className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.25)] text-[#00ff88]">{i+1}. {CAT_INFO[cat].emoji} {CAT_INFO[cat].label}</span>)}
+              : sequence.map((cat, i) => {
+                  const CatIcon = CAT_INFO[cat].Icon
+                  return <span key={i} className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.25)] text-[#00ff88] inline-flex items-center gap-1">{i+1}. <CatIcon size={10} color="#00ff88" /> {CAT_INFO[cat].label}</span>
+                })}
           </div>
           <div className="flex gap-2 mb-1">
             {(['free','paid','fix'] as Category[]).map(cat => (
@@ -312,9 +315,11 @@ export default function AutoPostSchedule() {
             <div>
               <div className="flex items-center justify-between mb-2"><SL>План ({plan.length} постов)</SL><button onClick={() => { setPlan(null); setAutoActive(false) }} className="text-[10px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors -mt-2">Пересоздать</button></div>
               <div className="flex flex-col gap-1.5">
-                {plan.map(post => (
+                {plan.map(post => {
+                  const CatIcon = CAT_INFO[post.category].Icon
+                  return (
                   <div key={post.id} className="flex items-center gap-3 p-3 bg-[#080808] border border-[rgba(0,255,136,0.08)] rounded-[12px]">
-                    <span className="text-[15px] flex-shrink-0">{CAT_INFO[post.category].emoji}</span>
+                    <CatIcon size={15} color="rgba(0,255,136,0.6)" />
                     <div className="flex-1 min-w-0"><p className="text-[12px] font-bold">{post.date}</p><p className="text-[10px] text-[rgba(255,255,255,0.35)]">{CAT_INFO[post.category].label}</p></div>
                     {post.editing ? (
                       <input type="time" defaultValue={post.time} autoFocus onBlur={e => setPlan(p => p ? p.map(x => x.id === post.id ? { ...x, time: e.target.value, editing: false } : x) : p)} style={{ colorScheme: 'dark' }}
@@ -323,7 +328,8 @@ export default function AutoPostSchedule() {
                       <button onClick={() => setPlan(p => p ? p.map(x => x.id === post.id ? { ...x, editing: true } : x) : p)} className="text-[12px] font-bold text-[rgba(0,255,136,0.7)] hover:text-[#00ff88] transition-colors w-[46px] text-right">{post.time}</button>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
             <Button fullWidth onClick={() => setAutoActive(v => !v)}>
@@ -348,7 +354,10 @@ export default function AutoPostSchedule() {
             <button key={src} onClick={() => setPickerSource(src)}
               className={`flex-1 py-2 rounded-[10px] text-[10px] font-black border transition-all
                 ${pickerSource === src ? 'bg-[#00ff88] border-[#00ff88] text-black' : 'border-[rgba(0,255,136,0.2)] text-[rgba(255,255,255,0.4)] hover:border-[rgba(0,255,136,0.4)]'}`}>
-              {src === 'ready' ? '📋 Готовые' : src === 'storage' ? '🗂 Хранилище' : '📱 Устройство'}
+              <span className="flex items-center justify-center gap-1">
+                {src === 'ready' ? <IconFileText size={11} color="currentColor" /> : src === 'storage' ? <IconGallery size={11} color="currentColor" /> : <IconUpload size={11} color="currentColor" />}
+                {src === 'ready' ? 'Готовые' : src === 'storage' ? 'Хранилище' : 'Устройство'}
+              </span>
             </button>
           ))}
         </div>
@@ -440,7 +449,7 @@ export default function AutoPostSchedule() {
           </div>
           {editingPost?.cat === 'paid' && (
             <div>
-              <SL>Цена (⭐ Stars)</SL>
+              <SL><span className="inline-flex items-center gap-1">Цена (<IconStar size={9} color="rgba(0,255,136,0.6)" /> Stars)</span></SL>
               <input type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="250" min="1" style={{ colorScheme: 'dark' }}
                 className="w-full bg-[#080808] border border-[rgba(0,255,136,0.2)] rounded-[12px] px-4 py-3 text-[14px] text-white outline-none focus:border-[rgba(0,255,136,0.5)] transition-all" />
             </div>
