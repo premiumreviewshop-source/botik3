@@ -13,13 +13,14 @@ const MOCK_PPV: PPVItem[] = [
 ]
 
 export default function PPV() {
-  const { goBack } = useApp()
+  const { bots, goBack, navigate } = useApp()
   const [items, setItems] = useState<PPVItem[]>(MOCK_PPV)
+  const [activeBotId, setActiveBotId] = useState<string | null>(null)
+
   const [editing, setEditing] = useState<PPVItem | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDesc, setEditDesc] = useState('')
   const [editPrice, setEditPrice] = useState('')
-
   const fileInputRef = useRef<HTMLInputElement>(null)
   const editFileInputRef = useRef<HTMLInputElement>(null)
   const [editMediaUrl, setEditMediaUrl] = useState<string | undefined>(undefined)
@@ -29,6 +30,11 @@ export default function PPV() {
   const [addTitle, setAddTitle] = useState('')
   const [addDesc, setAddDesc] = useState('')
   const [addPrice, setAddPrice] = useState('')
+
+  // Only bots with AI Chat module
+  const chatters = bots.filter(b => b.modules.includes('AI Chat'))
+  const activeBot = chatters.find(b => b.id === activeBotId) ?? null
+  const botItems = activeBotId ? items.filter(i => i.botId === activeBotId) : []
 
   const handleMediaFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -41,10 +47,10 @@ export default function PPV() {
   }
 
   const saveNewItem = () => {
-    if (!pendingMedia) return
+    if (!pendingMedia || !activeBotId) return
     setItems(prev => [...prev, {
       id: Date.now().toString(),
-      botId: '1',
+      botId: activeBotId,
       title: addTitle || 'Новый контент',
       description: addDesc,
       priceStars: Number(addPrice) || 100,
@@ -86,86 +92,149 @@ export default function PPV() {
   return (
     <div className="flex flex-col gap-5 pt-4">
       <div className="flex items-center gap-3 px-5">
-        <button onClick={goBack}
+        <button onClick={activeBotId ? () => setActiveBotId(null) : goBack}
           className="w-9 h-9 rounded-full bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center hover:bg-[rgba(0,255,136,0.12)] transition-colors">
           <IconBack size={20} color="#00ff88" />
         </button>
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[2px] text-[rgba(0,255,136,0.5)]">Контент</p>
-          <h1 className="text-[22px] font-black tracking-tight">PPV Контент</h1>
+          <p className="text-[9px] font-black uppercase tracking-[2px] text-[rgba(0,255,136,0.5)]">
+            {activeBot ? activeBot.name : 'Контент'}
+          </p>
+          <h1 className="text-[22px] font-black tracking-tight">
+            {activeBot ? 'PPV Хранилище' : 'PPV Контент'}
+          </h1>
         </div>
       </div>
 
-      {/* Upload zone */}
-      <div className="px-5">
-        <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleMediaFile} />
-        <button onClick={() => fileInputRef.current?.click()}
-          className="w-full py-8 rounded-[20px] border-2 border-dashed border-[rgba(0,255,136,0.2)]
-            bg-[rgba(0,255,136,0.03)] hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.06)]
-            flex flex-col items-center gap-3 transition-all duration-200">
-          <div className="w-12 h-12 rounded-full bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.25)] flex items-center justify-center"
-            style={{ boxShadow: '0 0 14px rgba(0,255,136,0.1)' }}>
-            <IconUpload size={22} color="#00ff88" />
+      {/* No chatters state */}
+      {chatters.length === 0 && (
+        <div className="px-5">
+          <div className="p-4 bg-[rgba(251,191,36,0.05)] border border-[rgba(251,191,36,0.2)] rounded-[14px] text-center">
+            <p className="text-[14px] font-bold text-amber-400 mb-1">Нет подключённых чаттеров</p>
+            <p className="text-[12px] text-[rgba(255,255,255,0.4)] mb-3">Сначала настрой AI Chatting для бота</p>
+            <button onClick={() => navigate('module/aichat')}
+              className="text-[12px] font-bold text-[rgba(0,255,136,0.8)] underline">
+              Перейти в AI Chatting
+            </button>
           </div>
-          <div className="text-center">
-            <p className="text-[14px] font-bold">Загрузить контент</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.32)]">Фото или видео с телефона</p>
-          </div>
-        </button>
-      </div>
+        </div>
+      )}
 
-      {/* Grid */}
-      <div className="px-5">
-        <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)] mb-3">{items.length} элементов</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          {items.map(item => (
-            <div key={item.id}
-              className="group relative bg-[#080808] border border-[rgba(0,255,136,0.12)] rounded-[16px] overflow-hidden
-                hover:border-[rgba(0,255,136,0.3)] transition-all duration-200">
-              <div className="aspect-[4/3] bg-[rgba(0,255,136,0.02)] overflow-hidden flex items-center justify-center">
-                {item.mediaUrl ? (
-                  item.mediaType === 'video'
-                    ? <video src={item.mediaUrl} className="w-full h-full object-cover" muted playsInline />
-                    : <img src={item.mediaUrl} className="w-full h-full object-cover" alt="" />
-                ) : (
-                  item.mediaType === 'video'
-                    ? <IconVideo size={28} color="rgba(0,255,136,0.2)" />
-                    : <IconImage size={28} color="rgba(0,255,136,0.2)" />
-                )}
-              </div>
-              <div className="p-2.5">
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`text-[9px] font-black uppercase tracking-[0.5px] px-1.5 py-0.5 rounded-full border ${
-                    item.mediaType === 'video'
-                      ? 'bg-[rgba(0,255,136,0.08)] text-[#00ff88] border-[rgba(0,255,136,0.2)]'
-                      : 'bg-[rgba(0,255,136,0.05)] text-[rgba(0,255,136,0.7)] border-[rgba(0,255,136,0.15)]'
-                  }`}>
-                    {item.mediaType === 'video' ? 'ВИДЕО' : 'ФОТО'}
-                  </span>
-                  <span className="text-[11px] font-bold">⭐ {item.priceStars}</span>
+      {/* Bot selector — shown when no bot selected */}
+      {chatters.length > 0 && !activeBotId && (
+        <div className="px-5 flex flex-col gap-3">
+          <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)]">Выбери чаттера</p>
+          {chatters.map(bot => {
+            const count = items.filter(i => i.botId === bot.id).length
+            return (
+              <button key={bot.id} onClick={() => setActiveBotId(bot.id)}
+                className="flex items-center gap-3.5 p-4 bg-[#080808] border border-[rgba(0,255,136,0.12)] rounded-[16px] text-left
+                  hover:border-[rgba(0,255,136,0.35)] hover:bg-[rgba(0,255,136,0.02)] transition-all duration-200">
+                <div className="w-11 h-11 rounded-full bg-[rgba(0,255,136,0.07)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center text-[13px] font-black text-[#00ff88] flex-shrink-0">
+                  {bot.name.slice(0, 2).toUpperCase()}
                 </div>
-                <p className="text-[13px] font-bold truncate">{item.title}</p>
-                <p className="text-[10px] text-[rgba(255,255,255,0.28)] mt-0.5">{item.purchases} покупок</p>
-              </div>
-              <button onClick={() => openEdit(item)}
-                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <div className="w-9 h-9 rounded-full bg-[rgba(0,255,136,0.2)] border border-[rgba(0,255,136,0.4)] flex items-center justify-center">
-                  <IconEdit size={18} color="#00ff88" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[16px] font-bold truncate">{bot.name}</p>
+                  <p className="text-[12px] text-[rgba(255,255,255,0.32)]">{bot.handle}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${bot.isActive ? 'bg-[#00ff88]' : 'bg-[rgba(255,255,255,0.2)]'}`}
+                    style={bot.isActive ? { boxShadow: '0 0 6px rgba(0,255,136,1)' } : {}} />
+                  <span className="text-[11px] text-[rgba(255,255,255,0.3)]">{count} файлов</span>
                 </div>
               </button>
-            </div>
-          ))}
-
-          {/* Add more tile */}
-          <button onClick={() => fileInputRef.current?.click()}
-            className="aspect-[4/3] rounded-[16px] border-2 border-dashed border-[rgba(0,255,136,0.12)]
-              hover:border-[rgba(0,255,136,0.3)] hover:bg-[rgba(0,255,136,0.03)] transition-all duration-200
-              flex flex-col items-center justify-center gap-2">
-            <IconPlus size={22} color="rgba(0,255,136,0.3)" />
-            <p className="text-[10px] text-[rgba(255,255,255,0.25)]">Добавить</p>
-          </button>
+            )
+          })}
         </div>
-      </div>
+      )}
+
+      {/* Bot storage — shown when bot selected */}
+      {activeBot && (
+        <>
+          {/* Upload zone */}
+          <div className="px-5">
+            <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleMediaFile} />
+            <button onClick={() => fileInputRef.current?.click()}
+              className="w-full py-6 rounded-[20px] border-2 border-dashed border-[rgba(0,255,136,0.2)]
+                bg-[rgba(0,255,136,0.03)] hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.06)]
+                flex flex-col items-center gap-2.5 transition-all duration-200">
+              <div className="w-11 h-11 rounded-full bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.25)] flex items-center justify-center"
+                style={{ boxShadow: '0 0 14px rgba(0,255,136,0.1)' }}>
+                <IconUpload size={20} color="#00ff88" />
+              </div>
+              <div className="text-center">
+                <p className="text-[13px] font-bold">Загрузить контент</p>
+                <p className="text-[11px] text-[rgba(255,255,255,0.32)]">Фото или видео для {activeBot.name}</p>
+              </div>
+            </button>
+          </div>
+
+          {/* Content grid */}
+          <div className="px-5">
+            <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)] mb-3">
+              {botItems.length} элементов
+            </p>
+            {botItems.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-12 text-center bg-[#080808] border border-[rgba(0,255,136,0.08)] rounded-[16px]">
+                <p className="text-[28px]">📦</p>
+                <p className="text-[13px] text-[rgba(255,255,255,0.3)]">Нет контента для {activeBot.name}</p>
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="text-[12px] font-bold text-[rgba(0,255,136,0.7)] underline">
+                  Загрузить первый
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5">
+                {botItems.map(item => (
+                  <div key={item.id}
+                    className="group relative bg-[#080808] border border-[rgba(0,255,136,0.12)] rounded-[16px] overflow-hidden
+                      hover:border-[rgba(0,255,136,0.3)] transition-all duration-200">
+                    <div className="aspect-[4/3] bg-[rgba(0,255,136,0.02)] overflow-hidden flex items-center justify-center">
+                      {item.mediaUrl ? (
+                        item.mediaType === 'video'
+                          ? <video src={item.mediaUrl} className="w-full h-full object-cover" muted playsInline />
+                          : <img src={item.mediaUrl} className="w-full h-full object-cover" alt="" />
+                      ) : (
+                        item.mediaType === 'video'
+                          ? <IconVideo size={28} color="rgba(0,255,136,0.2)" />
+                          : <IconImage size={28} color="rgba(0,255,136,0.2)" />
+                      )}
+                    </div>
+                    <div className="p-2.5">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[9px] font-black uppercase tracking-[0.5px] px-1.5 py-0.5 rounded-full border ${
+                          item.mediaType === 'video'
+                            ? 'bg-[rgba(0,255,136,0.08)] text-[#00ff88] border-[rgba(0,255,136,0.2)]'
+                            : 'bg-[rgba(0,255,136,0.05)] text-[rgba(0,255,136,0.7)] border-[rgba(0,255,136,0.15)]'
+                        }`}>
+                          {item.mediaType === 'video' ? 'ВИДЕО' : 'ФОТО'}
+                        </span>
+                        <span className="text-[11px] font-bold">⭐ {item.priceStars}</span>
+                      </div>
+                      <p className="text-[13px] font-bold truncate">{item.title}</p>
+                      <p className="text-[10px] text-[rgba(255,255,255,0.28)] mt-0.5">{item.purchases} покупок</p>
+                    </div>
+                    <button onClick={() => openEdit(item)}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-full bg-[rgba(0,255,136,0.2)] border border-[rgba(0,255,136,0.4)] flex items-center justify-center">
+                        <IconEdit size={18} color="#00ff88" />
+                      </div>
+                    </button>
+                  </div>
+                ))}
+
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="aspect-[4/3] rounded-[16px] border-2 border-dashed border-[rgba(0,255,136,0.12)]
+                    hover:border-[rgba(0,255,136,0.3)] hover:bg-[rgba(0,255,136,0.03)] transition-all duration-200
+                    flex flex-col items-center justify-center gap-2">
+                  <IconPlus size={22} color="rgba(0,255,136,0.3)" />
+                  <p className="text-[10px] text-[rgba(255,255,255,0.25)]">Добавить</p>
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Add new item sheet */}
       <BottomSheet isOpen={showAdd} onClose={() => { setShowAdd(false); setPendingMedia(null) }} title="Новый контент">
