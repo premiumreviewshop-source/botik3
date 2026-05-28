@@ -143,12 +143,12 @@ export default function AutoPostCaptions() {
           <SL>Фото для поста</SL>
           <div className="flex gap-2 mb-2">
             <button onClick={() => { setIsPackMode(false); setPackPhotos([]); openPicker() }}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[12px] border-2 border-dashed border-[rgba(0,255,136,0.22)] hover:border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.02)] hover:bg-[rgba(0,255,136,0.06)] text-[12px] font-bold text-[rgba(255,255,255,0.45)] hover:text-[rgba(0,255,136,0.9)] transition-all">
-              <IconPlus size={14} color="rgba(0,255,136,0.5)" /> Фото
+              className="flex-1 flex items-center gap-2 px-4 py-3 rounded-[12px] border-2 border-dashed border-[rgba(0,255,136,0.22)] hover:border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.02)] hover:bg-[rgba(0,255,136,0.06)] text-[12px] font-bold text-[rgba(255,255,255,0.45)] hover:text-[rgba(0,255,136,0.9)] transition-all">
+              <IconPlus size={14} color="rgba(0,255,136,0.5)" /> Выбрать фото
             </button>
             <button onClick={() => { setIsPackMode(true); setSelectedPhoto(null); openPicker() }}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[12px] border-2 border-dashed border-[rgba(0,255,136,0.22)] hover:border-[rgba(0,255,136,0.45)] bg-[rgba(0,255,136,0.02)] hover:bg-[rgba(0,255,136,0.06)] text-[12px] font-bold text-[rgba(255,255,255,0.45)] hover:text-[rgba(0,255,136,0.9)] transition-all">
-              <IconPlus size={14} color="rgba(0,255,136,0.5)" /> Пак фото
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-3 rounded-[12px] border border-[rgba(0,255,136,0.25)] bg-[rgba(0,255,136,0.04)] hover:bg-[rgba(0,255,136,0.1)] hover:border-[rgba(0,255,136,0.5)] text-[11px] font-bold text-[rgba(0,255,136,0.7)] hover:text-[#00ff88] transition-all">
+              <IconPlus size={13} color="rgba(0,255,136,0.7)" /> Пак
             </button>
           </div>
           {selectedPhoto && !isPackMode && (
