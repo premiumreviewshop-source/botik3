@@ -2,9 +2,17 @@ import type { Bot, PPVItem, AIModel, GeneratedPhoto, ReadyPost, SavedPrompt, Sav
 
 const BASE = '/api'
 
+function tgInitData(): string {
+  return (window as any).Telegram?.WebApp?.initData ?? ''
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const initData = tgInitData()
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(initData ? { 'x-telegram-init-data': initData } : {}),
+    },
     ...init,
   })
   if (!res.ok) {
