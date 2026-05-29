@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import type { Page, NavDir, TgUser, Bot, PPVItem, AIModel, Transaction, GeneratedPhoto, ReadyPost, SavedPrompt, SavedFooter, PlanItem } from '../types'
+import api from '../api/client'
 
 const PAGE_DEPTH: Record<Page, number> = {
   home: 0, bots: 0, balance: 0, referral: 0, settings: 0,
@@ -19,47 +20,23 @@ const TAB_INDEX: Partial<Record<Page, number>> = {
   home: 0, bots: 1, balance: 2, referral: 3, settings: 4,
 }
 
-const MOCK_USER: TgUser = {
-  id: 123456789,
-  first_name: 'Alex',
-  username: 'alexdev',
+const MOCK_USER: TgUser = { id: 123456789, first_name: 'Alex', username: 'alexdev' }
+
+function ls<T>(key: string, fallback: T): T {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback } catch { return fallback }
+}
+function lsSet(key: string, val: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(val)) } catch {}
 }
 
-const MOCK_BOTS: Bot[] = [
-  { id: '1', name: 'SofiaAI', handle: '@sofiaai_bot', isActive: true, modules: ['AI Chat', 'PPV'] },
-  { id: '2', name: 'AnaBot', handle: '@anabot_official', isActive: false, modules: [] },
-]
-
-const MOCK_MODELS: AIModel[] = [
-  { id: 'demo-1', name: 'Sofia Demo', status: 'ready', createdAt: '28 янв' },
-]
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: '1', type: 'topup', amount: 25, description: 'Пополнение через Stars', date: '15 янв' },
-  { id: '2', type: 'spend', amount: -2.5, description: 'AI Messages — SofiaAI', date: '15 янв' },
-  { id: '3', type: 'referral', amount: 5, description: 'Реферал @user123', date: '14 янв' },
-  { id: '4', type: 'spend', amount: -1.2, description: 'AI Messages — AnaBot', date: '13 янв' },
-  { id: '5', type: 'topup', amount: 10, description: 'Пополнение через Stars', date: '12 янв' },
-]
-
 interface AppCtx {
-  page: Page
-  dir: NavDir
-  user: TgUser
-  balance: number
-  bots: Bot[]
-  transactions: Transaction[]
-  ppvItems: PPVItem[]
-  models: AIModel[]
-  selectedBotId: string | null
-  selectedModelId: string | null
-  gallery: GeneratedPhoto[]
-  uploads: string[]
-  readyPosts: ReadyPost[]
-  savedPrompts: SavedPrompt[]
-  savedFooters: SavedFooter[]
-  navigate: (to: Page) => void
-  goBack: () => void
+  page: Page; dir: NavDir; user: TgUser; balance: number
+  bots: Bot[]; transactions: Transaction[]; ppvItems: PPVItem[]
+  models: AIModel[]; selectedBotId: string | null; selectedModelId: string | null
+  gallery: GeneratedPhoto[]; uploads: string[]
+  readyPosts: ReadyPost[]; savedPrompts: SavedPrompt[]; savedFooters: SavedFooter[]
+  contentPlan: PlanItem[] | null
+  navigate: (to: Page) => void; goBack: () => void
   setSelectedBotId: (id: string | null) => void
   setSelectedModelId: (id: string | null) => void
   setBots: (b: Bot[]) => void
@@ -70,8 +47,8 @@ interface AppCtx {
   setReadyPosts: (p: ReadyPost[]) => void
   setSavedPrompts: (p: SavedPrompt[]) => void
   setSavedFooters: (f: SavedFooter[]) => void
-  contentPlan: PlanItem[] | null
   setContentPlan: (p: PlanItem[] | null) => void
+  syncContentPlan: (p: PlanItem[]) => Promise<void>
 }
 
 const Ctx = createContext<AppCtx>(null!)
@@ -83,52 +60,77 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [page, setPage] = useState<Page>('home')
   const [dir, setDir] = useState<NavDir>('tab')
   const [, setHistory] = useState<Page[]>(['home'])
-  const [bots, setBots] = useState<Bot[]>(MOCK_BOTS)
-  const [ppvItems, setPpvItems] = useState<PPVItem[]>([])
-  const [models, setModels] = useState<AIModel[]>(MOCK_MODELS)
-  const [gallery, setGallery] = useState<GeneratedPhoto[]>([])
+
+  const [bots, setBots] = useState<Bot[]>(ls('bots', []))
+  const [ppvItems, setPpvItems] = useState<PPVItem[]>(ls('ppvItems', []))
+  const [models, setModels] = useState<AIModel[]>(ls('models', []))
+  const [gallery, setGallery] = useState<GeneratedPhoto[]>(ls('gallery', []))
   const [uploads, setUploads] = useState<string[]>([])
-  const [selectedBotId, setSelectedBotId] = useState<string | null>(MOCK_BOTS[0]?.id ?? null)
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null)
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
-  const [readyPosts, setReadyPosts] = useState<ReadyPost[]>([])
-  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([])
-  const [savedFooters, setSavedFooters] = useState<SavedFooter[]>([])
-  const [contentPlan, setContentPlan] = useState<PlanItem[] | null>(null)
+  const [readyPosts, setReadyPosts] = useState<ReadyPost[]>(ls('readyPosts', []))
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(ls('savedPrompts', []))
+  const [savedFooters, setSavedFooters] = useState<SavedFooter[]>(ls('savedFooters', []))
+  const [contentPlan, setContentPlan] = useState<PlanItem[] | null>(ls('contentPlan', null))
+  const [transactions] = useState<Transaction[]>(ls('transactions', []))
+  const [balance] = useState<number>(ls('balance', 47.50))
+
+  // Load from API on mount, fall back to localStorage cache if unavailable
+  useEffect(() => {
+    api.bots.list().then(d => { setBots(d); lsSet('bots', d); if (d[0]) setSelectedBotId(d[0].id) }).catch(() => {})
+    api.models.list().then(d => { setModels(d); lsSet('models', d) }).catch(() => {})
+    api.generate.list().then(d => {
+      const photos: GeneratedPhoto[] = d.map((g: any) => ({ id: g.id, modelId: g.modelId ?? '', modelName: g.modelName ?? '', url: g.url ?? '', createdAt: g.createdAt ?? '' }))
+      setGallery(photos); lsSet('gallery', photos)
+    }).catch(() => {})
+    api.posts.list().then(d => { setReadyPosts(d); lsSet('readyPosts', d) }).catch(() => {})
+    api.prompts.list().then(d => { setSavedPrompts(d); lsSet('savedPrompts', d) }).catch(() => {})
+    api.footers.list().then(d => { setSavedFooters(d); lsSet('savedFooters', d) }).catch(() => {})
+    api.autopost.getPlan().then(d => { if (d.length) { setContentPlan(d); lsSet('contentPlan', d) } }).catch(() => {})
+    api.ppv.list().then(d => { setPpvItems(d); lsSet('ppvItems', d) }).catch(() => {})
+  }, [])
+
+  // Persist changes to localStorage when they change
+  useEffect(() => { lsSet('bots', bots) }, [bots])
+  useEffect(() => { lsSet('models', models) }, [models])
+  useEffect(() => { lsSet('readyPosts', readyPosts) }, [readyPosts])
+  useEffect(() => { lsSet('savedPrompts', savedPrompts) }, [savedPrompts])
+  useEffect(() => { lsSet('savedFooters', savedFooters) }, [savedFooters])
+  useEffect(() => { lsSet('contentPlan', contentPlan) }, [contentPlan])
+  useEffect(() => { lsSet('ppvItems', ppvItems) }, [ppvItems])
+
+  const syncContentPlan = useCallback(async (plan: PlanItem[]) => {
+    setContentPlan(plan)
+    await api.autopost.savePlan(plan).catch(() => {})
+  }, [])
 
   const navigate = useCallback((to: Page) => {
-    const fromDepth = PAGE_DEPTH[page]
-    const toDepth = PAGE_DEPTH[to]
-    const fromTab = TAB_INDEX[page]
-    const toTab = TAB_INDEX[to]
-
+    const fromDepth = PAGE_DEPTH[page], toDepth = PAGE_DEPTH[to]
+    const fromTab = TAB_INDEX[page], toTab = TAB_INDEX[to]
     let d: NavDir = 'forward'
     if (toDepth < fromDepth) d = 'back'
     else if (toDepth === fromDepth) {
       if (fromTab !== undefined && toTab !== undefined) d = toTab > fromTab ? 'forward' : 'back'
       else d = 'tab'
     }
-
-    setDir(d)
-    setPage(to)
-    setHistory(h => [...h, to])
+    setDir(d); setPage(to); setHistory(h => [...h, to])
   }, [page])
 
   const goBack = useCallback(() => {
     setHistory(h => {
       const next = h.slice(0, -1)
       const prev = next[next.length - 1] ?? 'home'
-      setDir('back')
-      setPage(prev)
+      setDir('back'); setPage(prev)
       return next
     })
   }, [])
 
   return (
     <Ctx.Provider value={{
-      page, dir, user, balance: 47.50, bots, transactions: MOCK_TRANSACTIONS,
-      ppvItems, models, selectedBotId, selectedModelId, gallery, uploads, readyPosts, savedPrompts, savedFooters,
-      navigate, goBack, setSelectedBotId, setSelectedModelId, setBots, setPpvItems, setModels, setGallery, setUploads,
-      setReadyPosts, setSavedPrompts, setSavedFooters, contentPlan, setContentPlan,
+      page, dir, user, balance, bots, transactions, ppvItems, models,
+      selectedBotId, selectedModelId, gallery, uploads, readyPosts, savedPrompts, savedFooters, contentPlan,
+      navigate, goBack, setSelectedBotId, setSelectedModelId, setBots, setPpvItems, setModels,
+      setGallery, setUploads, setReadyPosts, setSavedPrompts, setSavedFooters, setContentPlan, syncContentPlan,
     }}>
       {children}
     </Ctx.Provider>

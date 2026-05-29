@@ -4,6 +4,18 @@ import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh, IconBrain, IconI
 import Button from '../../components/Button'
 import Input from '../../components/Input'
 import BottomSheet from '../../components/BottomSheet'
+import api from '../../api/client'
+
+async function toBase64(blobUrl: string): Promise<string> {
+  const res = await fetch(blobUrl)
+  const blob = await res.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
 
 type Mode = null | 'ai' | 'own'
 type Step = 1 | 2 | 3
@@ -56,14 +68,26 @@ export default function CreateModel() {
   }
   const regenerate = () => { setShowPreview(false); setGenStatus('idle'); setGenProgress(0) }
   const saveModel = () => { setShowPreview(false); setStep(2) }
-  const finish = () => {
-    setModels([...models, {
-      id: Date.now().toString(),
-      name: modelName || 'Model',
-      status: 'ready',
-      previewUrl: previewUrl ?? undefined,
-      createdAt: new Date().toLocaleDateString('ru'),
-    }])
+  const finish = async () => {
+    const imageUrls = await Promise.all(photos.filter(Boolean).map(url => toBase64(url!)))
+    try {
+      const result = await api.models.create({ name: modelName || 'Model', imageUrls })
+      setModels([...models, {
+        id: result.id,
+        name: result.name,
+        status: 'processing',
+        previewUrl: previewUrl ?? undefined,
+        createdAt: new Date().toLocaleDateString('ru'),
+      }])
+    } catch {
+      setModels([...models, {
+        id: Date.now().toString(),
+        name: modelName || 'Model',
+        status: 'processing',
+        previewUrl: previewUrl ?? undefined,
+        createdAt: new Date().toLocaleDateString('ru'),
+      }])
+    }
     navigate('module/models')
   }
 
@@ -75,14 +99,14 @@ export default function CreateModel() {
     e.target.value = ''
   }
   const removeOwnPhoto = (idx: number) => setOwnPhotos(prev => prev.filter((_, i) => i !== idx))
-  const saveOwnModel = () => {
-    setModels([...models, {
-      id: Date.now().toString(),
-      name: ownName.trim() || 'My Model',
-      status: 'ready',
-      previewUrl: ownPhotos[0],
-      createdAt: new Date().toLocaleDateString('ru'),
-    }])
+  const saveOwnModel = async () => {
+    const imageUrls = await Promise.all(ownPhotos.map(toBase64))
+    try {
+      const result = await api.models.create({ name: ownName.trim() || 'My Model', imageUrls })
+      setModels([...models, { id: result.id, name: result.name, status: 'processing', previewUrl: ownPhotos[0], createdAt: new Date().toLocaleDateString('ru') }])
+    } catch {
+      setModels([...models, { id: Date.now().toString(), name: ownName.trim() || 'My Model', status: 'processing', previewUrl: ownPhotos[0], createdAt: new Date().toLocaleDateString('ru') }])
+    }
     setOwnDone(true)
   }
 

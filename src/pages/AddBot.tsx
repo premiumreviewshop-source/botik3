@@ -4,6 +4,7 @@ import { IconBack, IconCheck } from '../components/Icons'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import HintBox from '../components/HintBox'
+import api from '../api/client'
 
 const STEPS = [
   { num: 1, title: 'Открой @BotFather', desc: 'Найди @BotFather в Telegram и начни диалог' },
@@ -21,19 +22,21 @@ export default function AddBot() {
   const handleConnect = async () => {
     if (!token.trim()) return
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1400))
-    const parts = token.split(':')
-    const name = `Bot_${parts[0]?.slice(-4) ?? '0000'}`
-    setBots([...bots, {
-      id: Date.now().toString(),
-      name,
-      handle: `@${name.toLowerCase()}`,
-      isActive: true,
-      modules: [],
-    }])
-    setDone(true)
-    setLoading(false)
-    setTimeout(goBack, 1500)
+    try {
+      const bot = await api.bots.add({ token: token.trim() })
+      setBots([...bots, bot])
+      setDone(true)
+      setTimeout(goBack, 1500)
+    } catch (err: any) {
+      // fallback: add locally if API unreachable
+      const parts = token.split(':')
+      const name = `Bot_${parts[0]?.slice(-4) ?? '0000'}`
+      setBots([...bots, { id: Date.now().toString(), name, handle: `@${name.toLowerCase()}`, isActive: true, modules: [] }])
+      setDone(true)
+      setTimeout(goBack, 1500)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
