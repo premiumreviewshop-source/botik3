@@ -1,6 +1,7 @@
 import type { Bot, PPVItem, AIModel, GeneratedPhoto, ReadyPost, SavedPrompt, SavedFooter, PlanItem, Transaction } from '../types'
 
-const BASE = '/api'
+// In production set VITE_API_URL=https://your-api.railway.app in Vercel env vars
+const BASE = (import.meta.env.VITE_API_URL ?? '') + '/api'
 
 function tgInitData(): string {
   return (window as any).Telegram?.WebApp?.initData ?? ''
