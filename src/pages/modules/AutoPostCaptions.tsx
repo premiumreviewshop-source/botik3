@@ -3,6 +3,7 @@ import { useApp } from '../../store/app'
 import { IconBack, IconZap, IconPlus, IconTrash, IconCheck, IconRefresh, IconFlame, IconEdit, IconLink } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
+import api from '../../api/client'
 
 type Lang = 'en' | 'ru' | 'tr'
 type Preset = 'hot' | 'custom'
@@ -72,16 +73,25 @@ export default function AutoPostCaptions() {
 
   const generate = async () => {
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1300))
-    let text = preset === 'custom'
-      ? `${customText}\n\n[AI сгенерировал описание на основе промпта]`
-      : HOT_TEXT[lang]
-    if (useFooter && footerText.trim()) {
-      const gap = '\n'.repeat(gapLines + 1)
-      text = `${text}${gap}${footerText}`
+    try {
+      const result = await api.captions.generate({
+        prompt: customText,
+        lang,
+        type: preset,
+        footerText: useFooter && footerText.trim() ? footerText : undefined,
+        gapLines,
+      })
+      setCaption(result.caption)
+    } catch {
+      // fallback to local template if API unavailable
+      let text = preset === 'custom'
+        ? `${customText}\n\n[Добавь ключ XAI_API_KEY для AI генерации]`
+        : HOT_TEXT[lang]
+      if (useFooter && footerText.trim()) text = `${text}${'\n'.repeat(gapLines + 1)}${footerText}`
+      setCaption(text)
+    } finally {
+      setLoading(false)
     }
-    setCaption(text)
-    setLoading(false)
   }
 
   const insertLink = () => {

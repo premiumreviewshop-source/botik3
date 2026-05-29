@@ -94,6 +94,11 @@ export const api = {
   transactions: {
     list: () => get<Transaction[]>('/transactions'),
   },
+
+  captions: {
+    generate: (data: { prompt?: string; lang: string; type: 'hot' | 'custom'; footerText?: string; gapLines?: number }) =>
+      post<{ caption: string }>('/captions/generate', data),
+  },
 }
 
 export default api
