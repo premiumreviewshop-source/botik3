@@ -66,10 +66,27 @@ body::after {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 430px; /* phone-only: clamps layout to largest iPhone width */
+  max-width: 430px;
   height: var(--tg-vh, 100dvh);
   max-height: var(--tg-vh, 100dvh);
   overflow: hidden;
+}
+
+/* On PC/tablet: render as a centered phone window with frame */
+@media (min-width: 500px) {
+  body {
+    align-items: center;
+  }
+
+  #root {
+    height: min(900px, calc(var(--tg-vh, 100dvh) - 40px));
+    max-height: min(900px, calc(var(--tg-vh, 100dvh) - 40px));
+    border-radius: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 30px 100px rgba(0, 0, 0, 0.6);
+  }
 }
 
 .page {
