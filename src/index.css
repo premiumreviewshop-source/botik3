@@ -38,10 +38,10 @@ body {
   justify-content: center;
 }
 
-/* Green grid + ambient glow backdrop */
-body::before {
+/* Green grid + ambient glow — contained inside #root (clips to phone frame on PC) */
+#root::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   background-image:
     linear-gradient(rgba(0,255,136,0.045) 1px, transparent 1px),
@@ -51,9 +51,9 @@ body::before {
   z-index: 0;
 }
 
-body::after {
+#root::after {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: radial-gradient(ellipse 60% 40% at 100% 100%, rgba(0,255,136,0.04) 0%, transparent 50%);
   pointer-events: none;
@@ -72,7 +72,7 @@ body::after {
   overflow: hidden;
 }
 
-/* On PC/tablet: render as a centered phone window with frame */
+/* On PC/tablet: centered phone window with frame, plain dark outside */
 @media (min-width: 500px) {
   body {
     align-items: center;
@@ -85,7 +85,7 @@ body::after {
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.04),
-      0 30px 100px rgba(0, 0, 0, 0.6);
+      0 30px 100px rgba(0, 0, 0, 0.7);
   }
 }
 
