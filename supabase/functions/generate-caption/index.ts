@@ -1,9 +1,13 @@
 import { corsHeaders } from '../_shared/cors.ts'
 import { checkAndDeduct } from '../_shared/balance.ts'
+import { verifyAuth } from '../_shared/auth.ts'
 
 const CAPTION_COST = 0.025
 
 const XAI_BASE = 'https://api.x.ai/v1'
+
+const respond = (d: unknown, s = 200) =>
+  new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 const SYSTEM: Record<string, string> = {
   ru: `Ты эксперт по созданию провокационных, крайне возбуждающих подписей для эротических/порно постов на русском языке (OnlyFans, Twitter/X, Telegram и т.д.).
@@ -39,12 +43,15 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { prompt, lang = 'ru', type = 'hot', footerText, gapLines = 1, imageUrl, tgUserId } = await req.json()
+    const { prompt, lang = 'ru', type = 'hot', footerText, gapLines = 1, imageUrl, initData } = await req.json()
 
-    if (tgUserId) {
-      const balErr = await checkAndDeduct(String(tgUserId), CAPTION_COST, 'Генерация описания')
-      if (balErr) return new Response(JSON.stringify(balErr), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
+    const botToken = Deno.env.get('PLATFORM_BOT_TOKEN') ?? Deno.env.get('BOT_TOKEN') ?? ''
+    const auth = await verifyAuth(initData, botToken)
+    if ('error' in auth) return respond(auth, auth.status)
+    const tgUserId = auth.uid
+
+    const balErr = await checkAndDeduct(tgUserId, CAPTION_COST, 'Генерация описания')
+    if (balErr) return respond(balErr, 402)
 
     const hotUserPrompt: Record<string, string> = {
       en: 'Write a hot caption for this photo following the system instructions exactly.',
@@ -80,10 +87,7 @@ Deno.serve(async (req: Request) => {
     if (!resp.ok) {
       const err = await resp.text()
       console.error('Grok error:', resp.status, err.slice(0, 300))
-      return new Response(JSON.stringify({ error: err }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return respond({ error: 'AI service error' }, 502)
     }
 
     const data = await resp.json()
@@ -94,13 +98,8 @@ Deno.serve(async (req: Request) => {
       caption = caption + gap + footerText
     }
 
-    return new Response(JSON.stringify({ caption }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return respond({ caption })
+  } catch {
+    return respond({ error: 'Internal server error' }, 500)
   }
 })

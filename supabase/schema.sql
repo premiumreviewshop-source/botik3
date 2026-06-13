@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
--- RLS: enable on all tables, grant full anon access (personal admin panel)
+-- RLS: enable on all tables
 ALTER TABLE bots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tg_updates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ppv_items ENABLE ROW LEVEL SECURITY;
@@ -121,7 +121,14 @@ ALTER TABLE saved_prompts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saved_footers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "anon_all_bots"         ON bots         FOR ALL TO anon USING (true) WITH CHECK (true);
+-- bots: SELECT only for anon (reads filtered by tg_user_id in client queries).
+-- All writes (INSERT/UPDATE/DELETE) go through edge functions using service_role key.
+-- MIGRATION REQUIRED: DROP POLICY "anon_all_bots" ON bots; then run these two:
+CREATE POLICY "anon_read_bots"        ON bots         FOR SELECT TO anon USING (true);
+-- service_role bypasses RLS, so no policy needed for edge functions.
+
+-- Other tables: still open for anon (client-side CRUD filtered by tg_user_id).
+-- TODO: migrate these to edge functions for full security in a future release.
 CREATE POLICY "anon_all_tg_updates"   ON tg_updates   FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "anon_all_ppv_items"    ON ppv_items     FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "anon_all_ai_models"    ON ai_models     FOR ALL TO anon USING (true) WITH CHECK (true);

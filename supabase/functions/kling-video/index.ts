@@ -1,32 +1,37 @@
 import { corsHeaders } from '../_shared/cors.ts'
 import { db } from '../_shared/db.ts'
 import { checkAndDeduct } from '../_shared/balance.ts'
+import { verifyAuth } from '../_shared/auth.ts'
 
 const VIDEO_COST: Record<string, number> = { '720p': 0.09, '1080p': 0.12 }
 
 const KLING_BASE = 'https://api.kie.ai/api/v1'
 const klingKey = () => Deno.env.get('KLING_API_KEY') ?? ''
 
+const respond = (d: unknown, s = 200) =>
+  new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const {
-      tgUserId, modelId, inputImageUrl, motionVideoUrl,
-      mode, characterOrientation, prompt, botId,
+      modelId, inputImageUrl, motionVideoUrl,
+      mode, characterOrientation, prompt, botId, initData,
     } = await req.json()
 
     if (!inputImageUrl || !motionVideoUrl) {
-      return new Response(JSON.stringify({ error: 'inputImageUrl and motionVideoUrl required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return respond({ error: 'inputImageUrl and motionVideoUrl required' }, 400)
     }
 
+    const botToken = Deno.env.get('PLATFORM_BOT_TOKEN') ?? Deno.env.get('BOT_TOKEN') ?? ''
+    const auth = await verifyAuth(initData, botToken)
+    if ('error' in auth) return respond(auth, auth.status)
+    const tgUserId = auth.uid
+
     const videoCost = VIDEO_COST[mode ?? '720p'] ?? 0.09
-    if (tgUserId) {
-      const balErr = await checkAndDeduct(String(tgUserId), videoCost, `Видео генерация ${mode ?? '720p'}`)
-      if (balErr) return new Response(JSON.stringify(balErr), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
+    const balErr = await checkAndDeduct(tgUserId, videoCost, `Видео генерация ${mode ?? '720p'}`)
+    if (balErr) return respond(balErr, 402)
 
     const klingBody = {
       model: 'kling-2.6/motion-control',
@@ -60,7 +65,7 @@ Deno.serve(async (req: Request) => {
     } catch {}
 
     const { data: job, error } = await db.from('kling_jobs').insert({
-      tg_user_id: tgUserId ?? 0,
+      tg_user_id: tgUserId,
       model_id: modelId ?? null,
       task_id: taskId ?? null,
       status: taskId ? 'processing' : 'failed',
@@ -72,24 +77,14 @@ Deno.serve(async (req: Request) => {
       bot_id: botId ?? null,
     }).select().single()
 
-    if (error || !job) {
-      return new Response(JSON.stringify({ error: error?.message ?? 'db error' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    if (error || !job) return respond({ error: error?.message ?? 'db error' }, 500)
 
     if (!taskId) {
-      return new Response(JSON.stringify({ error: `Kling API error: ${klingText.slice(0, 200)}` }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return respond({ error: 'Video service error' }, 502)
     }
 
-    return new Response(JSON.stringify({ id: job.id, taskId, status: 'processing' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return respond({ id: job.id, taskId, status: 'processing' })
+  } catch {
+    return respond({ error: 'Internal server error' }, 500)
   }
 })

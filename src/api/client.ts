@@ -26,6 +26,7 @@ async function fn<T>(name: string, body?: object): Promise<T> {
 }
 
 const uid = getTgUserId
+const getInitData = () => (window as any).Telegram?.WebApp?.initData ?? ''
 
 // ── row → type mappers ────────────────────────────────────────────────────────
 
@@ -157,44 +158,26 @@ function mapKlingJob(r: any): KlingJob {
 export const api = {
   bots: {
     list: async () => {
-      const rows = ok(await supabase.from('bots').select('*').eq('tg_user_id', uid()).order('created_at'))
-      return (rows as object[]).map(mapBot)
+      const result = await fn<{ bots: object[] }>('list-bots', { initData: getInitData() })
+      return result.bots.map(mapBot)
     },
     add: (data: { name?: string; token: string; chatId?: string }) =>
-      fn<Bot>('add-bot', { ...data, tgUserId: uid() }).then(mapBot),
-    update: async (
+      fn<Bot>('add-bot', { ...data, initData: getInitData() }).then(mapBot),
+    update: (
       id: string,
       data: Partial<Pick<Bot, 'name' | 'handle' | 'isActive' | 'modules'> & { chatId: string }>,
-    ) => {
-      ok(
-        await supabase.from('bots').update({
-          ...(data.name !== undefined && { name: data.name }),
-          ...(data.handle !== undefined && { handle: data.handle }),
-          ...(data.isActive !== undefined && { is_active: data.isActive }),
-          ...(data.modules !== undefined && { modules: data.modules }),
-          ...(data.chatId !== undefined && { chat_id: data.chatId }),
-        }).eq('id', id).eq('tg_user_id', uid()),
-      )
-      return { ok: true }
-    },
-    remove: async (id: string) => {
-      ok(await supabase.from('bots').delete().eq('id', id).eq('tg_user_id', uid()))
-      return { ok: true }
-    },
-    reset: async (id: string) => {
-      ok(await supabase.from('bots').update({ modules: [], is_active: false }).eq('id', id).eq('tg_user_id', uid()))
-      await supabase.from('ai_chat_config').delete().eq('bot_id', id)
-      await supabase.from('ppv_last_sent').delete().eq('bot_id', id)
-      await supabase.from('tg_updates').update({ replied: true }).eq('bot_id', id).eq('replied', false)
-      return { ok: true }
-    },
+    ) => fn<{ ok: boolean }>('update-bot', { id, ...data, initData: getInitData() }),
+    remove: (id: string) =>
+      fn<{ ok: boolean }>('delete-bot', { id, initData: getInitData() }),
+    reset: (id: string) =>
+      fn<{ ok: boolean }>('delete-bot', { id, reset: true, initData: getInitData() }),
     stats: (id: string, period: 'today' | 'week' | 'month') =>
       fn<{
         messages: number; uniqueChatters: number; ppvSold: number
         ppvRevenue: number; ppvRevenueUsd: number; postsPublished: number
         starsBalance: number; starsEarned: number; starsWithdrawn: number
         salesHistory?: { id: string; createdAt: string; tgUserId: number | null; tgFirstName: string | null; tgUsername: string | null; amountStars: number; amountUsd: number; itemTitle: string | null }[]
-      }>('analytics', { botId: id, period }),
+      }>('analytics', { botId: id, period, initData: getInitData() }),
   },
 
   analytics: {
@@ -205,11 +188,11 @@ export const api = {
         postsPublished: number; postsReach: number; postsInPlan: number
         botsActive: number; spark: number[]
         salesHistory: { id: string; createdAt: string; tgUserId: number | null; tgFirstName: string | null; tgUsername: string | null; amountStars: number; amountUsd: number; itemTitle: string | null }[]
-      }>('analytics', botId ? { period, botId } : { period }),
+      }>('analytics', { period, botId: botId ?? undefined, initData: getInitData() }),
     salesHistory: (botId?: string) =>
       fn<{ id: string; createdAt: string; tgUserId: number | null; amountStars: number; amountUsd: number; itemTitle: string | null }[]>(
         'analytics',
-        { period: 'month', botId },
+        { period: 'month', botId, initData: getInitData() },
       ).then((r: any) => r.salesHistory ?? []),
     heatmap: async () => ({ matrix: [] as number[][] }),
   },
@@ -224,7 +207,7 @@ export const api = {
       return mapModel(row)
     },
     create: (data: { name: string; imageUrls: string[]; prompt?: string }) =>
-      fn<{ id: string; name: string; status: string; triggerWord: string }>('create-model', { ...data, tgUserId: uid() }),
+      fn<{ id: string; name: string; status: string; triggerWord: string }>('create-model', { ...data, initData: getInitData() }),
     remove: async (id: string) => {
       ok(await supabase.from('ai_models').delete().eq('id', id).eq('tg_user_id', uid()))
       return { ok: true }
@@ -248,7 +231,7 @@ export const api = {
       return (rows as object[]).map(mapGeneration)
     },
     start: (data: { prompt: string; modelId?: string; imageUrls?: string[] }) =>
-      fn<{ id: string; status: string }>('generate-photo', { ...data, tgUserId: uid() }),
+      fn<{ id: string; status: string }>('generate-photo', { ...data, initData: getInitData() }),
     get: async (id: string) => {
       const row = ok(await supabase.from('generations').select('*').eq('id', id).single())
       return mapGeneration(row)
@@ -520,7 +503,7 @@ export const api = {
       characterOrientation?: 'image' | 'video'
       prompt?: string
       botId?: string
-    }) => fn<{ id: string; taskId: string; status: string }>('kling-video', { ...data, tgUserId: uid() }),
+    }) => fn<{ id: string; taskId: string; status: string }>('kling-video', { ...data, initData: getInitData() }),
     poll: (id: string) => fn<KlingJob>('poll-kling-video', { id }),
     remove: async (id: string) => {
       ok(await supabase.from('kling_jobs').delete().eq('id', id).eq('tg_user_id', uid()))
@@ -582,7 +565,7 @@ export const api = {
     generate: (data: {
       prompt?: string; lang: string; type: 'hot' | 'custom'
       footerText?: string; gapLines?: number; imageUrl?: string
-    }) => fn<{ caption: string }>('generate-caption', { ...data, tgUserId: uid() }),
+    }) => fn<{ caption: string }>('generate-caption', { ...data, initData: getInitData() }),
   },
 
   aiChat: {
