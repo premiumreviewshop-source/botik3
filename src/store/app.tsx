@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
-import type { Page, NavDir, TgUser, Bot, PPVItem, AIModel, Transaction, GeneratedPhoto, ReadyPost, SavedPrompt, SavedFooter, PlanItem } from '../types'
+import type { Page, NavDir, TgUser, Bot, PPVItem, AIModel, Transaction, GeneratedPhoto, ReadyPost, SavedPrompt, SavedFooter, SavedEmoji, PlanItem } from '../types'
 import api from '../api/client'
+import { setTgUserId } from '../lib/tgUser'
 
 const PAGE_DEPTH: Record<Page, number> = {
   home: 0, bots: 0, balance: 0, referral: 0, settings: 0,
@@ -14,10 +15,11 @@ const PAGE_DEPTH: Record<Page, number> = {
   'module/autopost/captions': 2,
   'module/autopost/schedule': 2,
   'module/autopost/analytics': 2,
+  'admin': 0,
 }
 
 const TAB_INDEX: Partial<Record<Page, number>> = {
-  home: 0, bots: 1, balance: 2, referral: 3, settings: 4,
+  home: 0, bots: 1, balance: 2, referral: 3, settings: 4, admin: 5,
 }
 
 const MOCK_USER: TgUser = { id: 123456789, first_name: 'Alex', username: 'alexdev' }
@@ -30,11 +32,11 @@ function lsSet(key: string, val: unknown) {
 }
 
 interface AppCtx {
-  page: Page; dir: NavDir; user: TgUser; balance: number
+  page: Page; dir: NavDir; user: TgUser; balance: number; isAdmin: boolean
   bots: Bot[]; transactions: Transaction[]; ppvItems: PPVItem[]
   models: AIModel[]; selectedBotId: string | null; selectedModelId: string | null
   gallery: GeneratedPhoto[]; uploads: string[]
-  readyPosts: ReadyPost[]; savedPrompts: SavedPrompt[]; savedFooters: SavedFooter[]
+  readyPosts: ReadyPost[]; savedPrompts: SavedPrompt[]; savedFooters: SavedFooter[]; savedEmojis: SavedEmoji[]
   contentPlan: PlanItem[] | null
   navigate: (to: Page) => void; goBack: () => void
   setSelectedBotId: (id: string | null) => void
@@ -47,8 +49,10 @@ interface AppCtx {
   setReadyPosts: (p: ReadyPost[]) => void
   setSavedPrompts: (p: SavedPrompt[]) => void
   setSavedFooters: (f: SavedFooter[]) => void
+  setSavedEmojis: (e: SavedEmoji[]) => void
   setContentPlan: (p: PlanItem[] | null) => void
   syncContentPlan: (p: PlanItem[]) => Promise<void>
+  setTransactions: (t: Transaction[]) => void
 }
 
 const Ctx = createContext<AppCtx>(null!)
@@ -56,6 +60,7 @@ const Ctx = createContext<AppCtx>(null!)
 export function AppProvider({ children }: { children: ReactNode }) {
   const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user as TgUser | undefined
   const user = tgUser ?? MOCK_USER
+  setTgUserId(user.id)
 
   const [page, setPage] = useState<Page>('home')
   const [dir, setDir] = useState<NavDir>('tab')
@@ -71,9 +76,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [readyPosts, setReadyPosts] = useState<ReadyPost[]>(ls('readyPosts', []))
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(ls('savedPrompts', []))
   const [savedFooters, setSavedFooters] = useState<SavedFooter[]>(ls('savedFooters', []))
+  const [savedEmojis, setSavedEmojis] = useState<SavedEmoji[]>(
+    (ls('savedEmojis', []) as SavedEmoji[]).map(e => ({ ...e, alt: e.alt ?? '✨' }))
+  )
   const [contentPlan, setContentPlan] = useState<PlanItem[] | null>(ls('contentPlan', null))
-  const [transactions] = useState<Transaction[]>(ls('transactions', []))
-  const [balance] = useState<number>(ls('balance', 47.50))
+  const [transactions, setTransactions] = useState<Transaction[]>(ls('transactions', []))
+  const [isAdmin, setIsAdmin] = useState(false)
+  const balance = transactions.filter(t => t.type === 'topup').reduce((s, t) => s + t.amount, 0)
+    - transactions.filter(t => t.type === 'spend').reduce((s, t) => s + Math.abs(t.amount), 0)
 
   // Load from API on mount, fall back to localStorage cache if unavailable
   useEffect(() => {
@@ -88,6 +98,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     api.footers.list().then(d => { setSavedFooters(d); lsSet('savedFooters', d) }).catch(() => {})
     api.autopost.getPlan().then(d => { if (d.length) { setContentPlan(d); lsSet('contentPlan', d) } }).catch(() => {})
     api.ppv.list().then(d => { setPpvItems(d); lsSet('ppvItems', d) }).catch(() => {})
+    api.emojis.list().then(d => { setSavedEmojis(d); lsSet('savedEmojis', d) }).catch(() => {})
+    api.transactions.list().then(d => { setTransactions(d); lsSet('transactions', d) }).catch(() => {})
+    import('../lib/supabase').then(({ supabase }) => {
+      const initData = (window as any).Telegram?.WebApp?.initData ?? ''
+      if (initData) {
+        supabase.functions.invoke('admin', {
+          body: {
+            action: 'save_profile',
+            initData,
+            username: user.username ?? null,
+            firstName: user.first_name ?? null,
+            lastName: (user as any).last_name ?? null,
+          }
+        }).catch(() => {})
+      }
+      // Register referral if user arrived via ref link (DB handles dedup via PK)
+      const startParam = (window as any).Telegram?.WebApp?.initDataUnsafe?.start_param as string | undefined
+      const urlRef = new URLSearchParams(window.location.search).get('ref')
+      const refRaw = startParam?.startsWith('ref_') ? startParam.slice(4) : urlRef ?? null
+      if (refRaw && refRaw !== String(user.id)) {
+        const initData = (window as any).Telegram?.WebApp?.initData ?? ''
+        supabase.functions.invoke('payments', {
+          body: { action: 'track_referral', refereeTgUserId: user.id, referrerTgUserId: refRaw, initData }
+        }).catch(() => {})
+      }
+      // Check admin status
+      supabase.functions.invoke('admin', { body: { action: 'check_admin', callerTgId: user.id } })
+        .then(({ data }) => { if (data?.isAdmin) setIsAdmin(true) })
+        .catch(() => {})
+    })
   }, [])
 
   // Persist changes to localStorage when they change
@@ -96,8 +136,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => { lsSet('readyPosts', readyPosts) }, [readyPosts])
   useEffect(() => { lsSet('savedPrompts', savedPrompts) }, [savedPrompts])
   useEffect(() => { lsSet('savedFooters', savedFooters) }, [savedFooters])
+  useEffect(() => { lsSet('savedEmojis', savedEmojis) }, [savedEmojis])
   useEffect(() => { lsSet('contentPlan', contentPlan) }, [contentPlan])
   useEffect(() => { lsSet('ppvItems', ppvItems) }, [ppvItems])
+  useEffect(() => { lsSet('transactions', transactions) }, [transactions])
 
   const syncContentPlan = useCallback(async (plan: PlanItem[]) => {
     setContentPlan(plan)
@@ -127,10 +169,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      page, dir, user, balance, bots, transactions, ppvItems, models,
-      selectedBotId, selectedModelId, gallery, uploads, readyPosts, savedPrompts, savedFooters, contentPlan,
+      page, dir, user, balance, isAdmin, bots, transactions, ppvItems, models,
+      selectedBotId, selectedModelId, gallery, uploads, readyPosts, savedPrompts, savedFooters, savedEmojis, contentPlan,
       navigate, goBack, setSelectedBotId, setSelectedModelId, setBots, setPpvItems, setModels,
-      setGallery, setUploads, setReadyPosts, setSavedPrompts, setSavedFooters, setContentPlan, syncContentPlan,
+      setGallery, setUploads, setReadyPosts, setSavedPrompts, setSavedFooters, setSavedEmojis, setContentPlan, syncContentPlan, setTransactions,
     }}>
       {children}
     </Ctx.Provider>

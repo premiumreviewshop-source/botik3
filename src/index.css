@@ -2,116 +2,338 @@
 @tailwind components;
 @tailwind utilities;
 
-*, *::before, *::after { box-sizing: border-box; }
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
 
-html, body, #root {
+button, a {
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.22,1,0.36,1), background 0.18s ease;
+}
+
+:root {
+  /* Fallback: native notch + fixed Telegram header (44px).
+     JS overrides when TMA API reports real inset values. */
+  --page-top: calc(env(safe-area-inset-top, 0px) + 60px);
+  /* Bottom safe area for home indicator. JS overrides from tg.safeAreaInset.bottom. */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
   height: 100%;
-  overflow: hidden;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  background: #000;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+  font-family: -apple-system, 'SF Pro Display', system-ui, 'Helvetica Neue', sans-serif;
+  color: #ffffff;
+  background: #020202;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  color-scheme: dark;
-  color: rgba(255,255,255,0.9);
+  overscroll-behavior-y: none;
+  /* Phone-only layout: centers content on tablet/desktop */
+  display: flex;
+  justify-content: center;
 }
 
-/* Subtle neon grid overlay */
+/* Green grid + ambient glow backdrop */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0,255,136,0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,136,0.022) 1px, transparent 1px);
-  background-size: 52px 52px;
+    linear-gradient(rgba(0,255,136,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,136,0.045) 1px, transparent 1px);
+  background-size: 38px 38px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 100% 100%, rgba(0,255,136,0.04) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
 
 #root {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  height: 100dvh;
-  max-width: 480px;
-  margin: 0 auto;
-  position: relative;
+  width: 100%;
+  max-width: 430px; /* phone-only: clamps layout to largest iPhone width */
+  height: var(--tg-vh, 100dvh);
+  max-height: var(--tg-vh, 100dvh);
   overflow: hidden;
-  z-index: 1;
 }
 
-/* scrollable areas */
-.scroll-y {
+.page {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  /* Set by JS (safeAreaInset.top + contentSafeAreaInset.top). CSS default: 88px from :root. */
+  padding-top: var(--page-top);
+  padding-bottom: calc(72px + max(var(--safe-bottom), 16px));
 }
-.scroll-y::-webkit-scrollbar { display: none; }
+.page::-webkit-scrollbar { display: none; }
 
 .scroll-x {
+  display: flex;
   overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   scroll-snap-type: x mandatory;
 }
 .scroll-x::-webkit-scrollbar { display: none; }
 
-/* page wrapper */
-.page {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 96px;
-}
-.page::-webkit-scrollbar { display: none; }
+/* ── Animations ── */
 
-/* input reset */
-input, textarea {
-  color-scheme: dark;
-  -webkit-text-fill-color: rgba(255,255,255,0.9);
-  background-color: #080808;
-  outline: none;
-}
-input::placeholder, textarea::placeholder {
-  -webkit-text-fill-color: rgba(255,255,255,0.2);
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* safe area bottom */
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+@keyframes reveal-scale {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
-/* glare sweep animation */
-@keyframes glare {
-  0%   { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+@keyframes reveal-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmer-slide {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
+}
+@keyframes card-shimmer {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(300%) skewX(-15deg); }
+}
+
+@keyframes dot-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slide-sheet {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pop-bounce {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes ping-once {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes card-shine-move {
+  from { transform: translateX(-180%); }
+  to   { transform: translateX(380%); }
+}
+
+@keyframes btn-shine-sweep {
+  0%, 55%  { transform: translateX(-200%) skewX(-20deg); opacity: 0; }
+  58%      { opacity: 1; }
+  84%      { opacity: 1; }
+  88%, 100%{ transform: translateX(400%) skewX(-20deg); opacity: 0; }
+}
+
+@keyframes money-rise {
+  0%   { transform: translateY(0) scale(1); opacity: 0.9; }
+  70%  { opacity: 0.6; }
+  100% { transform: translateY(-300px) rotate(18deg) scale(0.7); opacity: 0; }
+}
+
+@keyframes dot-pulse {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30%            { transform: translateY(-7px); opacity: 1; }
+}
+
+@keyframes check-draw {
+  from { stroke-dashoffset: 65; opacity: 0; }
   15%  { opacity: 1; }
-  100% { transform: translateX(350%) skewX(-15deg); opacity: 0; }
+  to   { stroke-dashoffset: 0; opacity: 1; }
 }
 
-.glare-sweep {
-  animation: glare 1.4s ease-out forwards;
+/* ── Page transitions ── */
+@keyframes page-in-forward {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes page-in-back {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes page-tab-fade {
+  from { transform: translateY(6px); }
+  to   { transform: translateY(0); }
 }
 
-/* neon pulse glow */
-@keyframes neon-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(0,255,136,0.35), 0 0 24px rgba(0,255,136,0.1); }
-  50% { box-shadow: 0 0 20px rgba(0,255,136,0.65), 0 0 48px rgba(0,255,136,0.2); }
+@keyframes panel-slide-up {
+  from { transform: translateY(72px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes count-up-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.animate-neon-pulse {
-  animation: neon-pulse 3s ease-in-out infinite;
+.page { position: relative; }
+.page-slide-in   { animation: page-in-forward 0.30s cubic-bezier(0.22,1,0.36,1) both; }
+.page-slide-back { animation: page-in-back    0.24s cubic-bezier(0.22,1,0.36,1) both; }
+.page-tab-switch { animation: page-tab-fade   0.22s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-panel-up { animation: panel-slide-up  0.5s  cubic-bezier(0.22,1,0.36,1) both; }
+.count-up-anim   { animation: count-up-in     0.4s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Utility classes */
+.animate-reveal-up    { animation: reveal-up   0.45s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-reveal-scale { animation: reveal-scale 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-reveal-fade  { animation: reveal-fade  0.3s ease both; }
+.animate-card-in      { animation: card-in      0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-spin         { animation: spin 0.8s linear infinite; }
+.animate-dot          { animation: dot-blink 1.4s ease-in-out infinite; }
+.animate-float        { animation: float-y 3s ease-in-out infinite; }
+.animate-shimmer      { animation: shimmer-slide 2.5s linear infinite; }
+.animate-sheet        { animation: slide-sheet 0.38s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-pop          { animation: pop-bounce 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-ping-once    { animation: ping-once 0.6s ease-out both; }
+.card-shine           { background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.09) 50%, transparent 100%); animation: card-shine-move 0.65s cubic-bezier(0.4,0,0.2,1) both; }
+
+/* Backwards compat with old classes */
+.animate-slide-up   { animation: reveal-up  0.45s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-glow-in    { animation: reveal-scale 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-fade-in    { animation: reveal-fade 0.3s ease both; }
+.animate-pop-in     { animation: pop-bounce 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-fade-up    { animation: slide-sheet 0.38s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Stagger delays */
+.stagger-1 { animation-delay: 55ms; }
+.stagger-2 { animation-delay: 110ms; }
+.stagger-3 { animation-delay: 165ms; }
+.stagger-4 { animation-delay: 220ms; }
+.stagger-5 { animation-delay: 275ms; }
+.stagger-6 { animation-delay: 330ms; }
+
+/* Card surface */
+.card {
+  background: linear-gradient(145deg, rgba(22,28,72,0.75) 0%, rgba(10,13,38,0.9) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 22px;
 }
 
-/* glow-in entrance */
-@keyframes glow-in {
-  from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
-  to   { opacity: 1; transform: none; filter: blur(0); }
+/* Shimmer text */
+.text-shimmer {
+  background: linear-gradient(90deg, #00ffaa 0%, #00d4ff 35%, #9d8fff 65%, #00ffaa 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-slide 3.5s linear infinite;
 }
 
-.animate-glow-in {
-  animation: glow-in 0.45s cubic-bezier(.16,1,.3,1) both;
+/* Bottom page fade — absolute within #root so it stays within 430px column */
+/* Hidden by default; shown only on the 4 main bottom-nav tabs via sibling selectors below */
+.page-bottom-fade {
+  position: absolute;
+  bottom: calc(72px + var(--safe-bottom));
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to top, rgba(2,2,6,0.95) 0%, rgba(2,2,6,0.5) 55%, transparent 100%);
+  pointer-events: none;
+  z-index: 5;
+  display: none;
+}
+
+/* Balance page: dark-green top so iOS overscroll bounce blends instead of showing black */
+.page--balance {
+  background: linear-gradient(to bottom, rgba(0,50,16,0.7) 0%, transparent 140px);
+}
+
+/* Referral page: sky-blue top → dark bottom */
+.page--referral {
+  background: linear-gradient(180deg, #1a6cbf 0%, #1155a8 18%, #073578 42%, #031840 65%, #020510 100%);
+}
+
+.page--home ~ .page-bottom-fade,
+.page--bots ~ .page-bottom-fade,
+.page--balance ~ .page-bottom-fade,
+.page--referral ~ .page-bottom-fade,
+.page--settings ~ .page-bottom-fade {
+  display: block;
+}
+
+/* Top page fade — absolute within #root so it stays within 430px column */
+.page-top-fade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(
+    to bottom,
+    rgba(2, 2, 6, 0.78) 0%,
+    rgba(2, 2, 6, 0.28) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 5;
+  display: none;
+}
+
+.page--home ~ .page-top-fade,
+.page--bots ~ .page-top-fade,
+.page--settings ~ .page-top-fade {
+  display: block;
+}
+
+/* Glass nav */
+.glass-nav {
+  background: rgba(8,11,24,0.88);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+button { cursor: pointer; }
+input, textarea { outline: none; }
+
+/* ── Responsive adaptations ── */
+
+/* Large phones — slightly taller bottom fade */
+@media (min-width: 410px) {
+  .page-bottom-fade {
+    height: 110px;
+  }
 }

@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS banned_users (
+  tg_user_id TEXT PRIMARY KEY,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

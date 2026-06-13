@@ -1,0 +1,1 @@
+ALTER TABLE ai_chat_config ADD COLUMN IF NOT EXISTS read_delay_seconds INTEGER NOT NULL DEFAULT 2;

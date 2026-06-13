@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { AppProvider, useApp } from './store/app'
+import { LangProvider } from './store/lang'
 import BottomNav from './components/BottomNav'
 import Home from './pages/Home'
 import Bots from './pages/Bots'
@@ -19,14 +20,16 @@ import AutoPostCaptions from './pages/modules/AutoPostCaptions'
 import AutoPostSchedule from './pages/modules/AutoPostSchedule'
 import AutoPostAnalytics from './pages/modules/AutoPostAnalytics'
 import Analytics from './pages/modules/Analytics'
+import Admin from './pages/Admin'
+import PlatformOverlay from './components/PlatformOverlay'
 
 function PageRouter() {
   const { page, dir } = useApp()
 
   const animClass = useMemo(() => {
-    if (dir === 'forward') return 'animate-slide-in'
-    if (dir === 'back') return 'animate-slide-back'
-    return 'animate-fade-up'
+    if (dir === 'forward') return 'page-slide-in'
+    if (dir === 'back') return 'page-slide-back'
+    return 'page-tab-switch'
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page])
 
@@ -50,12 +53,13 @@ function PageRouter() {
       case 'module/autopost/captions': return <AutoPostCaptions />
       case 'module/autopost/schedule': return <AutoPostSchedule />
       case 'module/autopost/analytics': return <AutoPostAnalytics />
+      case 'admin': return <Admin />
       default: return <Home />
     }
   }
 
   return (
-    <div key={page} className={`page ${animClass}`}>
+    <div key={page} className={`page ${animClass} page--${page.replace(/\//g, '-')}`}>
       {content()}
     </div>
   )
@@ -63,9 +67,14 @@ function PageRouter() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <PageRouter />
-      <BottomNav />
-    </AppProvider>
+    <LangProvider>
+      <AppProvider>
+        <PlatformOverlay />
+        <PageRouter />
+        <div className="page-top-fade" />
+        <div className="page-bottom-fade" />
+        <BottomNav />
+      </AppProvider>
+    </LangProvider>
   )
 }

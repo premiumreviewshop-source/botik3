@@ -1,363 +1,704 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useApp } from '../../store/app'
-import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh, IconImage } from '../../components/Icons'
+import { useLang } from '../../store/lang'
+import {
+  IconBack, IconPlus, IconTrash, IconImage,
+  IconCheck, IconZap, IconDownload, IconX, IconChevronRight, IconVideo, IconPhoto,
+} from '../../components/Icons'
 import Button from '../../components/Button'
+import BottomSheet from '../../components/BottomSheet'
+import ModelVideoTab from './ModelVideoTab'
+import ModelCaptionsTab from './ModelCaptionsTab'
+import api from '../../api/client'
+import type { GeneratedPhoto } from '../../types/index'
+import { supabaseUrl, supabaseKey } from '../../lib/supabase'
+import { downloadFile } from '../../lib/download'
 
-type GenStatus = 'idle' | 'processing' | 'done'
+// ── Prompts ──────────────────────────────────────────────────────────────────
 
-const STORAGE_TEMPLATES = [
-  { id: 't1', url: 'https://picsum.photos/seed/beach1/200/260', label: 'Пляж' },
-  { id: 't2', url: 'https://picsum.photos/seed/studio2/200/260', label: 'Студия' },
-  { id: 't3', url: 'https://picsum.photos/seed/city3/200/260', label: 'Город' },
-  { id: 't4', url: 'https://picsum.photos/seed/luxury4/200/260', label: 'Luxury' },
-  { id: 't5', url: 'https://picsum.photos/seed/nature5/200/260', label: 'Природа' },
-  { id: 't6', url: 'https://picsum.photos/seed/office6/200/260', label: 'Офис' },
-]
+const PROMPT_FACESWAP = `Replace the woman in the second reference image with the woman from the first reference image. The first image is the identity reference and must be strictly preserved: keep her face, body shape, exact proportions, and silhouette unchanged. Do not modify anatomy, do not stretch or resize body parts. Use the outfit from the second reference image. The clothing, styling, and fit must match the second image exactly. Transfer the woman from the first image into the pose of the second image, matching body position precisely while keeping original proportions. The second image defines the environment: keep the same background, camera angle, framing, perspective, and composition. Match the lighting from the second image exactly: same light direction, intensity, shadows, highlights, and color grading. Match the image quality of the second photo: same resolution, sharpness, noise level, skin detail, lens characteristics, and overall realism. Do not enhance or degrade quality — replicate it exactly. Ensure seamless blending into the scene with correct depth and perspective. No stylization, no reinterpretation, no body reshaping. Photorealistic, natural result good quality, delete tattoo on hand, no text`
 
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className="text-[#00ff88] text-[10px]" style={{ textShadow: '0 0 8px rgba(0,255,136,0.9)' }}>◆</span>
-      <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)]">{children}</p>
-    </div>
-  )
+const PROMPT_UNDRESS = `(completely nude:1.45), (fully naked:1.4), (plump vulva:1.3), (full puffy labia:1.3), (highly detailed pussy:1.35), masterpiece, best quality, ultra-detailed 8k photorealistic raw photo, professional studio photography, extremely sharp focus, A beautiful young woman in the exact same pose, body position, hand placement, head angle and camera angle as in the reference image, completely nude, fully naked, bare skin everywhere, no clothes at all, no clothing, no underwear, no fabric, no textile on body, clothing completely removed, perfect flawless porcelain skin, smooth airbrushed skin, zero imperfections, no moles, no birthmarks, no freckles, no blemishes, no acne, no scars, no stretch marks, no veins, perfectly even skin tone, subtle realistic skin pores only, voluptuous model-like breasts, fuller voluminous breasts, firm perky and elastic breasts with beautiful natural round shape and soft natural sag, highly detailed realistic nipples, puffy erect nipples, perfectly shaped detailed areolas, highly detailed intimate parts, plump and voluminous vulva, fuller puffy labia, slightly enhanced and firm intimate area, beautifully shaped pussy with realistic texture, delicate but plump folds, perfect anatomical correctness, high-resolution intimate details, visible clitoris, naturally plump and aesthetic genital area, no blurry genitals, no low detail pussy, firm and toned intimate skin, seductive feminine body, elegant slim waist, toned flat stomach, beautiful hip lines and curves, exact same lighting and shadows as in the reference image, soft natural side lighting, cinematic volumetric light, gentle shadows emphasizing body curves, extremely detailed skin texture, realistic micro-details, sharp focus on breasts and intimate areas, depth of field, 85mm lens, f/1.8, shot on Sony A7R IV, natural color grading, sensual elegant atmosphere`
+
+const PROMPT_BOTH = `Use the woman from the first reference image as the absolute identity source. Strictly preserve her exact face, facial features, bone structure, skin texture, eye shape, nose, lips, jawline, body shape, exact proportions, silhouette, limb lengths, shoulder width, waist-to-hip ratio, breast size and shape, hand size, and overall anatomy without any modification, stretching, resizing or reshaping. Perform precise face-swap and full body identity transfer from the first reference image. Transfer this woman into the exact pose, body position, hand placement, head angle and camera angle of the second reference image. Use the environment, background, framing, perspective, composition, lighting direction, intensity, shadows, highlights, color grading, resolution, sharpness, noise level, skin detail and lens characteristics exactly from the second reference image. Match the second image quality completely. Remove all clothing from the second reference image and make her completely nude while keeping perfect identity from the first image: (completely nude:1.45), (fully naked:1.4), (plump vulva:1.3), (full puffy labia:1.3), (highly detailed pussy:1.35), masterpiece, best quality, ultra-detailed 8k photorealistic raw photo, professional studio photography, extremely sharp focus, A beautiful young woman in the exact same pose, body position, hand placement, head angle and camera angle as in the reference image, completely nude, fully naked, bare skin everywhere, no clothes at all, no clothing, no underwear, no fabric, no textile on body, clothing completely removed, perfect flawless porcelain skin, smooth airbrushed skin, zero imperfections, no moles, no birthmarks, no freckles, no blemishes, no acne, no scars, no stretch marks, no veins, perfectly even skin tone, subtle realistic skin pores only, extremely smooth flawless skin, velvet smooth body texture, minimal digital noise, clean high quality rendering, smooth genital skin, perfectly smooth genital area, silky smooth flawless intimate skin, ultra smooth high quality vulva and labia, supremely smooth and refined intimate texture, voluptuous model-like breasts, fuller voluminous breasts, firm perky and elastic breasts with beautiful natural round shape and soft natural sag, highly detailed realistic nipples, puffy erect nipples, perfectly shaped detailed areolas, natural soft pink nipples, gentle rosy pink color, realistic natural pink areolas and nipples, bright vivid pink nipples, vibrant bright pink nipples, intense natural bright rosy pink color, always bright pink nipples, fixed bright pink nipples, razor sharp well-defined nipples, crystal clear nipple texture and edges, prominent visible nipples, always clearly visible nipples, fixed natural pink nipples, fixed puffy erect nipple shape, never disappearing nipples, ultra sharp crystal clear focus on nipples and intimate areas, extreme high resolution intimate details, highly detailed intimate parts, plump and voluminous vulva, fuller puffy labia, slightly enhanced and firm intimate area, beautifully shaped pussy with realistic texture, delicate but plump folds, perfect anatomical correctness, high-resolution intimate details, visible clitoris, naturally plump and aesthetic genital area, natural standard slit pussy with clear vaginal opening, fixed natural pussy shape with defined labia and slit, no blurry genitals, no low detail pussy, firm and toned intimate skin, seductive feminine body, elegant slim waist, toned flat stomach, beautiful hip lines and curves, exact same lighting and shadows as in the reference image, soft natural side lighting, cinematic volumetric light, gentle shadows emphasizing body curves, extremely detailed skin texture, realistic micro-details, sharp focus on breasts and intimate areas, depth of field, 85mm lens, f/1.8, shot on Sony A7R IV, natural color grading, sensual elegant atmosphere, delete tattoo on hand, no text`
+
+// ── Upload helper ─────────────────────────────────────────────────────────────
+
+const SAFE_MIME: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
 }
 
-export default function ModelDetail() {
-  const { goBack, models, selectedModelId, bots, setBots, gallery, setGallery, uploads, setUploads, navigate } = useApp()
+async function uploadForSwap(file: File): Promise<string> {
+  const rawExt = (file.name.split('.').pop() ?? 'jpg').toLowerCase()
+  const ext = SAFE_MIME[rawExt] ? rawExt : 'jpg'
+  const mime = SAFE_MIME[ext] ?? 'image/jpeg'
+  const path = `faceswap/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+  const base = supabaseUrl.replace(/\/$/, '')
+  const resp = await fetch(`${base}/storage/v1/object/model-images/${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${supabaseKey}`,
+      apikey: supabaseKey,
+      'Content-Type': mime,
+      'x-upsert': 'true',
+    },
+    body: await file.arrayBuffer(),
+  })
+  if (!resp.ok) throw new Error(`upload failed: ${resp.status}`)
+  return `${base}/storage/v1/object/public/model-images/${path}`
+}
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type Status = 'idle' | 'uploading' | 'processing' | 'done' | 'error' | 'leaving'
+type PhotoItem = { id: string; file: File; previewUrl: string; status: Status; errorMsg?: string }
+type PromptMode = 'faceswap' | 'undress' | 'both'
+
+const BORDER: Record<Status, string> = {
+  idle: 'rgba(0,255,170,0.22)',
+  uploading: 'rgba(251,191,36,0.45)',
+  processing: 'rgba(251,191,36,0.45)',
+  done: 'rgba(0,255,170,0.55)',
+  error: 'rgba(239,68,68,0.4)',
+  leaving: 'rgba(0,255,170,0.3)',
+}
+
+const MODE_LABELS: Record<PromptMode, string> = {
+  faceswap: 'FaceSwap',
+  undress: 'Undress',
+  both: 'Swap + Undress',
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function ModelDetail() {
+  const { goBack, models, selectedModelId, gallery, setGallery } = useApp()
+  const { t } = useLang()
   const model = models.find(m => m.id === selectedModelId)
 
-  // Bot connection
-  const [connectedBotId, setConnectedBotId] = useState<string>(bots[0]?.id ?? '')
-
-  // Photo source: own photos (4 slots) or templates (multi-select)
-  type PhotoSource = 'own' | 'templates'
-  const [source, setSource] = useState<PhotoSource>('own')
-
-  // Own photo slots
-  const [ownPhotos, setOwnPhotos] = useState<(string | null)[]>([null, null, null, null])
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [pendingSlot, setPendingSlot] = useState<number | null>(null)
-
-  // Selected templates (multi-select)
-  const [selectedTemplates, setSelectedTemplates] = useState<string[]>([])
-
-  // Generation state
-  const [genStatus, setGenStatus] = useState<GenStatus>('idle')
-  const [genProgress, setGenProgress] = useState(0)
-  const [results, setResults] = useState<string[]>([])
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [mainMode, setMainMode] = useState<'photo' | 'video' | 'captions'>('photo')
+  const [photos, setPhotos] = useState<PhotoItem[]>([])
+  const [dragOver, setDragOver] = useState(false)
+  const [running, setRunning] = useState(false)
+  const [promptMode, setPromptMode] = useState<PromptMode>('faceswap')
+  const [showStorage, setShowStorage] = useState(false)
+  const [newIds, setNewIds] = useState<Set<string>>(new Set())
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const fileRef = useRef<HTMLInputElement>(null)
+  const photoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   if (!model) return null
 
+  // ── Reload this model's generations from DB (background support) ──────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const reloadModelGens = useCallback(async () => {
+    try {
+      const fresh = await api.generate.listByModel(model.id)
+      setGallery([
+        ...fresh,
+        ...gallery.filter((g: GeneratedPhoto) => g.modelId !== model.id),
+      ])
+    } catch {}
+  // gallery intentionally excluded: stale is fine — we replace only this model's rows
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [model.id, setGallery])
+
+  // Reload from DB on mount — picks up any completions that happened while app was in background
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => { reloadModelGens() }, [model.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll every 5s while processing generations exist
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    const hasProcessing = gallery.some(
+      g => g.modelId === model.id && (g.status === 'processing' || !g.status),
+    )
+    if (!hasProcessing) {
+      if (photoTimerRef.current) { clearInterval(photoTimerRef.current); photoTimerRef.current = null }
+      return
+    }
+    if (photoTimerRef.current) return
+    photoTimerRef.current = setInterval(reloadModelGens, 5000)
+    return () => { if (photoTimerRef.current) { clearInterval(photoTimerRef.current); photoTimerRef.current = null } }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gallery.some(g => g.modelId === model.id && (g.status === 'processing' || !g.status)), model.id])
+
+  // Reload on tab focus
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') reloadModelGens() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [reloadModelGens])
+
   const modelGallery = gallery.filter(g => g.modelId === model.id)
+  const reversedGallery = [...modelGallery].reverse()
+  const readyGallery = reversedGallery.filter(g => g.status !== 'processing' && g.url)
+  const modelPhoto = model.previewUrl ?? ''
+  const canFaceSwap = !!modelPhoto && !modelPhoto.toLowerCase().includes('.safetensors')
+  const needsModelPhoto = promptMode !== 'undress'
 
-  const openSlotPicker = (idx: number) => {
-    setPendingSlot(idx)
-    fileInputRef.current?.click()
+  const addFiles = (files: File[]) => {
+    const items: PhotoItem[] = files
+      .filter(f => f.type.startsWith('image/'))
+      .map(f => ({
+        id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        file: f,
+        previewUrl: URL.createObjectURL(f),
+        status: 'idle' as Status,
+      }))
+    if (items.length) setPhotos(p => [...p, ...items])
   }
-  const handleSlotFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || pendingSlot === null) return
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const url = ev.target?.result as string
-      setOwnPhotos(p => p.map((v, i) => i === pendingSlot ? url : v))
-      setUploads([url, ...uploads])
-    }
-    reader.readAsDataURL(file)
+
+  const updatePhoto = (id: string, patch: Partial<PhotoItem>) =>
+    setPhotos(p => p.map(ph => ph.id === id ? { ...ph, ...patch } : ph))
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    if (!running) addFiles(Array.from(e.dataTransfer.files))
+  }
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) addFiles(Array.from(e.target.files))
     e.target.value = ''
-    setPendingSlot(null)
-  }
-  const removeOwnPhoto = (idx: number) => setOwnPhotos(p => p.map((v, i) => i === idx ? null : v))
-
-  const toggleTemplate = (id: string) => {
-    setSelectedTemplates(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    )
   }
 
-  const photoCount = source === 'own'
-    ? ownPhotos.filter(Boolean).length
-    : selectedTemplates.length
+  const removeFromGallery = async (id: string) => {
+    try {
+      await api.generate.remove(id)
+      setGallery(gallery.filter(g => g.id !== id))
+    } catch {}
+  }
 
-  const canGenerate = genStatus === 'idle' && photoCount > 0
+  const downloadPhoto = (url: string, idx: number) =>
+    downloadFile(url, `photo_${idx + 1}.jpg`)
 
-  const generate = async () => {
-    setGenStatus('processing')
-    setResults([])
-    for (let i = 0; i <= 100; i += 5) {
-      await new Promise(r => setTimeout(r, 120))
-      setGenProgress(i)
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const downloadSelected = async () => {
+    const items = readyGallery.filter(g => selectedIds.has(g.id))
+    for (let i = 0; i < items.length; i++) {
+      await downloadPhoto(items[i].url, i)
+      if (i < items.length - 1) await new Promise(r => setTimeout(r, 350))
     }
-    const generated = Array.from({ length: photoCount }, (_, i) =>
-      `https://picsum.photos/seed/gen${Date.now() + i * 7}/400/520`
-    )
-    setResults(generated)
-    setGenStatus('done')
+    setSelectMode(false)
+    setSelectedIds(new Set())
   }
 
-  const reset = () => {
-    setGenStatus('idle')
-    setGenProgress(0)
-    setResults([])
-    setSavedIds(new Set())
+  const deleteSelected = async () => {
+    const ids = [...selectedIds]
+    await Promise.all(ids.map(id => api.generate.remove(id).catch(() => {})))
+    setGallery(gallery.filter(g => !selectedIds.has(g.id)))
+    setSelectMode(false)
+    setSelectedIds(new Set())
   }
 
-  const saveAll = () => {
-    const newPhotos = results.map((url, i) => ({
-      id: `${Date.now()}-${i}`,
-      modelId: model.id,
-      modelName: model.name,
-      url,
-      createdAt: new Date().toLocaleDateString('ru'),
+  const openLightbox = (idx: number) => {
+    setShowStorage(false)
+    setTimeout(() => setLightboxIdx(idx), 120)
+  }
+
+  const closeLightbox = () => {
+    setLightboxIdx(null)
+    setTimeout(() => setShowStorage(true), 80)
+  }
+
+  const scheduleLeavingAnimation = (photoId: string) => {
+    setTimeout(() => {
+      updatePhoto(photoId, { status: 'leaving' })
+      setTimeout(() => setPhotos(p => p.filter(x => x.id !== photoId)), 420)
+    }, 1500)
+  }
+
+  const runFaceSwap = async () => {
+    const queue = photos.filter(p => p.status === 'idle')
+    if (!queue.length) return
+    if (needsModelPhoto && !canFaceSwap) return
+    setRunning(true)
+
+    const prompt = promptMode === 'faceswap' ? PROMPT_FACESWAP
+      : promptMode === 'undress' ? PROMPT_UNDRESS
+      : PROMPT_BOTH
+
+    // Submit all photos in parallel — background cron handles completion
+    const newPlaceholders: GeneratedPhoto[] = []
+
+    await Promise.all(queue.map(async (photo) => {
+      updatePhoto(photo.id, { status: 'uploading' })
+      try {
+        const uploadedUrl = await uploadForSwap(photo.file)
+        updatePhoto(photo.id, { status: 'processing' })
+
+        const imageUrls = promptMode === 'undress'
+          ? [uploadedUrl]
+          : [modelPhoto, uploadedUrl]
+
+        const job = await api.generate.start({ prompt, modelId: model.id, imageUrls })
+
+        newPlaceholders.push({
+          id: job.id,
+          modelId: model.id,
+          modelName: model.name,
+          url: '',
+          createdAt: new Date().toISOString(),
+          status: 'processing',
+        })
+        setNewIds(prev => new Set([...prev, job.id]))
+        updatePhoto(photo.id, { status: 'done' })
+        scheduleLeavingAnimation(photo.id)
+      } catch (err) {
+        updatePhoto(photo.id, { status: 'error', errorMsg: String(err) })
+      }
     }))
-    setGallery([...gallery, ...newPhotos])
-    setSavedIds(new Set(results))
-    reset()
+
+    // Single setGallery call after all promises settle — avoids stale closure overwrites
+    if (newPlaceholders.length) {
+      const placeholderIds = new Set(newPlaceholders.map(p => p.id))
+      setGallery([...newPlaceholders, ...gallery.filter((g: GeneratedPhoto) => !placeholderIds.has(g.id))])
+    }
+
+    setRunning(false)
   }
 
-  const saveOne = (url: string, resultIdx: number) => {
-    if (savedIds.has(url)) return
-    setGallery([...gallery, {
-      id: `${Date.now()}-${resultIdx}`,
-      modelId: model.id,
-      modelName: model.name,
-      url,
-      createdAt: new Date().toLocaleDateString('ru'),
-    }])
-    setSavedIds(prev => new Set([...prev, url]))
-  }
+  const idleCount = photos.filter(p => p.status === 'idle').length
+  const doneCount = photos.filter(p => p.status === 'done').length
+  const activeCount = photos.filter(p => p.status === 'uploading' || p.status === 'processing').length
 
-  const connectedBot = bots.find(b => b.id === connectedBotId)
-  const availableBots = bots.filter(b => b.modules.length === 0 || b.modules.includes('AI Models'))
+  const processingPhotoCount = modelGallery.filter(g => g.status === 'processing').length
+  const readyPhotoCount = modelGallery.filter(g => g.status === 'ready' || !g.status).length
+
+  const storageTitle = (
+    <div className="flex items-center justify-between w-full pr-1">
+      <span>
+        {t.mods.storageLabel} — {readyPhotoCount} {t.mods.photoTab.toLowerCase()}
+        {processingPhotoCount > 0 && <span className="text-amber-400 ml-1.5">· {processingPhotoCount} AI</span>}
+      </span>
+      <button
+        onClick={() => { setSelectMode(s => !s); setSelectedIds(new Set()) }}
+        className={`text-[12px] font-bold px-3 py-1 rounded-[8px] transition-all
+          ${selectMode
+            ? 'text-white bg-[rgba(255,255,255,0.08)]'
+            : 'text-[#00ffaa] hover:bg-[rgba(0,255,170,0.08)]'}`}>
+        {selectMode ? t.common.cancel : t.mods.selectBtn}
+      </button>
+    </div>
+  )
+
+  const storageFooter = selectMode && selectedIds.size > 0 ? (
+    <div className="flex gap-3 pb-1">
+      <button
+        onClick={downloadSelected}
+        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[13px]
+          bg-[rgba(0,255,170,0.1)] border border-[rgba(0,255,170,0.3)] text-[13px] font-bold text-[#00ffaa]">
+        <IconDownload size={16} color="#00ffaa" />
+        {t.mods.downloadBtn} ({selectedIds.size})
+      </button>
+      <button
+        onClick={deleteSelected}
+        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[13px]
+          bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.25)] text-[13px] font-bold text-red-400">
+        <IconTrash size={15} color="#f87171" />
+        {t.common.delete} ({selectedIds.size})
+      </button>
+    </div>
+  ) : undefined
 
   return (
-    <div className="flex flex-col gap-5 pt-4">
-      {/* Header */}
+    <div className="flex flex-col gap-5 pt-4 pb-8">
+      <style>{`
+        @keyframes dropIn {
+          from { opacity:0; transform:translateY(-18px) scale(.88); }
+          to   { opacity:1; transform:translateY(0) scale(1); }
+        }
+        @keyframes popIn {
+          from { opacity:0; transform:scale(.82) translateY(10px); }
+          to   { opacity:1; transform:scale(1) translateY(0); }
+        }
+        @keyframes rollAway {
+          0%   { opacity:1; transform:scale(1) translateX(0) rotate(0deg); }
+          35%  { opacity:1; transform:scale(1.06) translateX(6px) rotate(4deg); }
+          100% { opacity:0; transform:scale(0.5) translateX(55px) rotate(18deg); }
+        }
+        @keyframes lbIn {
+          from { opacity:0; transform:scale(0.96); }
+          to   { opacity:1; transform:scale(1); }
+        }
+      `}</style>
+
+      {/* ── Header ── */}
       <div className="flex items-center gap-3 px-5">
         <button onClick={goBack}
-          className="w-9 h-9 rounded-full bg-[rgba(0,255,136,0.06)] border border-[rgba(0,255,136,0.2)] flex items-center justify-center hover:bg-[rgba(0,255,136,0.12)] transition-colors">
-          <IconBack size={20} color="#00ff88" />
+          className="w-10 h-10 rounded-[14px] flex items-center justify-center transition-all duration-200 active:scale-[0.92]" style={{ background: 'rgba(0,255,170,0.06)', border: '1px solid rgba(0,255,170,0.2)' }}>
+          <IconBack size={20} color="#00ffaa" />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-[2px] text-[rgba(0,255,136,0.5)]">AI Модель</p>
+          <p className="text-[9px] font-black uppercase tracking-[2px] text-[rgba(0,255,170,0.5)]">{t.mods.aiModelBadge}</p>
           <h1 className="text-[20px] font-black tracking-tight truncate">{model.name}</h1>
         </div>
-        {model.previewUrl && (
-          <div className="w-10 h-10 rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.3)] flex-shrink-0">
-            <img src={model.previewUrl} className="w-full h-full object-cover" alt="" />
-          </div>
-        )}
       </div>
 
-      {/* ── Генерация фото ── */}
+      {/* ── Main mode (Photo / Video / Captions) ── */}
       <div className="px-5">
-        <SectionLabel>Генерация фото</SectionLabel>
-
-        {/* Source toggle */}
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setSource('own')}
-            className={`flex-1 py-2.5 rounded-[12px] text-[12px] font-bold border transition-all duration-200
-              ${source === 'own'
-                ? 'border-[#00ff88] bg-[rgba(0,255,136,0.08)] text-[#00ff88]'
-                : 'border-[rgba(0,255,136,0.15)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(0,255,136,0.3)]'}`}>
-            Свои фото
+        <div className="flex gap-2">
+          <button onClick={() => setMainMode('photo')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[13px] text-[12px] font-black border transition-all
+              ${mainMode === 'photo'
+                ? 'bg-[rgba(0,255,170,0.12)] border-[rgba(0,255,170,0.45)] text-[#00ffaa]'
+                : 'bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.07)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(0,255,170,0.2)]'}`}>
+            <IconPhoto size={14} color={mainMode === 'photo' ? '#00ffaa' : 'rgba(255,255,255,0.35)'} />
+            {t.mods.photoTab}
           </button>
-          <button onClick={() => setSource('templates')}
-            className={`flex-1 py-2.5 rounded-[12px] text-[12px] font-bold border transition-all duration-200
-              ${source === 'templates'
-                ? 'border-[#00ff88] bg-[rgba(0,255,136,0.08)] text-[#00ff88]'
-                : 'border-[rgba(0,255,136,0.15)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(0,255,136,0.3)]'}`}>
-            Шаблоны
+          <button onClick={() => setMainMode('video')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[13px] text-[12px] font-black border transition-all
+              ${mainMode === 'video'
+                ? 'bg-[rgba(0,255,170,0.12)] border-[rgba(0,255,170,0.45)] text-[#00ffaa]'
+                : 'bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.07)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(0,255,170,0.2)]'}`}>
+            <IconVideo size={14} color={mainMode === 'video' ? '#00ffaa' : 'rgba(255,255,255,0.35)'} />
+            {t.mods.videoTab}
+          </button>
+          <button onClick={() => setMainMode('captions')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[13px] text-[12px] font-black border transition-all
+              ${mainMode === 'captions'
+                ? 'bg-[rgba(0,255,170,0.12)] border-[rgba(0,255,170,0.45)] text-[#00ffaa]'
+                : 'bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.07)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(0,255,170,0.2)]'}`}>
+            <IconZap size={14} color={mainMode === 'captions' ? '#00ffaa' : 'rgba(255,255,255,0.35)'} />
+            Описания
           </button>
         </div>
-
-        {/* Own photos grid */}
-        {source === 'own' && genStatus === 'idle' && (
-          <>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleSlotFile} />
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-3">Добавь свои фото — каждое будет отдельной генерацией</p>
-            <div className="grid grid-cols-4 gap-2 mb-4">
-              {ownPhotos.map((photo, idx) => (
-                <div key={idx} className="aspect-[3/4] relative">
-                  {photo ? (
-                    <div className="w-full h-full rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.3)] relative bg-[#050505]">
-                      <img src={photo} className="w-full h-full object-contain" alt="" />
-                      <button onClick={() => removeOwnPhoto(idx)}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center">
-                        <IconTrash size={10} color="#00ff88" />
-                      </button>
-                      <div className="absolute bottom-1 left-1 w-4 h-4 rounded-full bg-[#00ff88] flex items-center justify-center"
-                        style={{ boxShadow: '0 0 5px rgba(0,255,136,0.8)' }}>
-                        <IconCheck size={9} color="black" />
-                      </div>
-                    </div>
-                  ) : (
-                    <button onClick={() => openSlotPicker(idx)}
-                      className="w-full h-full rounded-[12px] border-2 border-dashed border-[rgba(0,255,136,0.15)] bg-[#080808]
-                        hover:border-[rgba(0,255,136,0.4)] hover:bg-[rgba(0,255,136,0.04)] transition-all duration-200
-                        flex flex-col items-center justify-center gap-1">
-                      <div className="w-7 h-7 rounded-full bg-[rgba(0,255,136,0.07)] flex items-center justify-center">
-                        <IconPlus size={14} color="rgba(0,255,136,0.4)" />
-                      </div>
-                      <p className="text-[9px] text-[rgba(255,255,255,0.2)]">Фото {idx + 1}</p>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Templates grid */}
-        {source === 'templates' && genStatus === 'idle' && (
-          <>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-3">Выбери шаблоны — AI применит твою модель к каждому</p>
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {STORAGE_TEMPLATES.map(t => {
-                const selected = selectedTemplates.includes(t.id)
-                return (
-                  <button key={t.id} onClick={() => toggleTemplate(t.id)}
-                    className={`relative aspect-[3/4] rounded-[10px] overflow-hidden border-2 transition-all duration-150
-                      ${selected ? 'border-[#00ff88]' : 'border-transparent'}`}
-                    style={selected ? { boxShadow: '0 0 10px rgba(0,255,136,0.4)' } : {}}>
-                    <img src={t.url} className="w-full h-full object-cover" alt={t.label} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <span className="absolute bottom-1.5 left-0 right-0 text-center text-[9px] font-black text-white">{t.label}</span>
-                    {selected && (
-                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#00ff88] flex items-center justify-center">
-                        <IconCheck size={10} color="black" />
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </>
-        )}
-
-        {/* Progress */}
-        {genStatus === 'processing' && (
-          <div className="p-4 bg-[#080808] border border-[rgba(0,255,136,0.2)] rounded-[14px] mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[13px] font-bold">Генерация {photoCount} фото...</p>
-              <p className="text-[13px] font-black text-[#00ff88]"
-                style={{ textShadow: '0 0 8px rgba(0,255,136,0.5)' }}>{genProgress}%</p>
-            </div>
-            <div className="h-[3px] bg-[rgba(0,255,136,0.08)] rounded-full overflow-hidden">
-              <div className="h-full bg-[#00ff88] rounded-full transition-all duration-200"
-                style={{ width: `${genProgress}%`, boxShadow: '0 0 8px rgba(0,255,136,0.7)' }} />
-            </div>
-            <p className="text-[11px] text-[rgba(255,255,255,0.28)] mt-2">AI рендер + FaceSwap…</p>
-          </div>
-        )}
-
-        {/* Results */}
-        {genStatus === 'done' && results.length > 0 && (
-          <div className="mb-4">
-            <p className="text-[11px] font-black uppercase tracking-[1px] text-[rgba(0,255,136,0.5)] mb-2">
-              Готово — {results.length} фото
-            </p>
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {results.map((url, i) => {
-                const saved = savedIds.has(url)
-                return (
-                  <div key={i} className="relative aspect-[3/4] rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.2)] bg-[#050505]">
-                    <img src={url} className="w-full h-full object-contain" alt="" />
-                    <button onClick={() => saveOne(url, i)}
-                      className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center border transition-all
-                        ${saved
-                          ? 'bg-[#00ff88] border-[#00ff88]'
-                          : 'bg-black/60 border-[rgba(0,255,136,0.5)] hover:bg-[rgba(0,255,136,0.2)]'}`}>
-                      <IconCheck size={11} color={saved ? 'black' : '#00ff88'} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={reset}>
-                <IconRefresh size={16} />
-                Заново
-              </Button>
-              <Button className="flex-1" onClick={saveAll}
-                disabled={savedIds.size === results.length}>
-                <IconCheck size={16} />
-                {savedIds.size === results.length ? 'Сохранено' : `Сохранить все (${results.length})`}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Generate button */}
-        {genStatus === 'idle' && (
-          <Button fullWidth disabled={!canGenerate} onClick={generate}>
-            Сгенерировать {photoCount > 0 ? `(${photoCount} фото)` : ''}
-          </Button>
-        )}
       </div>
 
-      {/* ── Хранилище модели ── */}
-      <div className="px-5">
-        <SectionLabel>Хранилище модели</SectionLabel>
-        {modelGallery.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center bg-[#080808] border border-[rgba(0,255,136,0.08)] rounded-[16px]">
-            <IconImage size={32} color="rgba(0,255,136,0.25)" />
-            <p className="text-[13px] text-[rgba(255,255,255,0.3)]">Здесь будут сгенерированные фото</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-2">
-            {modelGallery.map(g => (
-              <div key={g.id} className="aspect-[3/4] rounded-[12px] overflow-hidden border border-[rgba(0,255,136,0.15)] bg-[#050505]">
-                <img src={g.url} className="w-full h-full object-contain" alt="" />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* ── Video mode ── */}
+      {mainMode === 'video' && <ModelVideoTab model={model} gallery={gallery} />}
 
-      {/* ── Подключённый бот ── */}
+      {/* ── Captions mode ── */}
+      {mainMode === 'captions' && <ModelCaptionsTab model={model} />}
+
+      {/* ── Photo mode content ── */}
+      {mainMode === 'photo' && <>
+
+      {/* ── Mode selector ── */}
       <div className="px-5">
-        <SectionLabel>Подключённый бот</SectionLabel>
-        {availableBots.length === 0 ? (
-          <div className="p-3 bg-[rgba(251,191,36,0.05)] border border-[rgba(251,191,36,0.2)] rounded-[12px]">
-            <p className="text-[12px] text-amber-400 font-bold mb-1">Нет доступных ботов</p>
-            <p className="text-[11px] text-[rgba(255,255,255,0.4)]">Все боты заняты. <button onClick={() => navigate('bots')} className="text-[rgba(0,255,136,0.7)] underline">Перейди в Боты</button> и сбрось нужный.</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {availableBots.map(b => (
-              <button key={b.id} onClick={() => {
-                setConnectedBotId(b.id)
-                setBots(bots.map(x => x.id === b.id ? { ...x, modules: [...new Set([...x.modules, 'AI Models'])] } : x))
-              }}
-                className={`flex items-center gap-3 p-3.5 rounded-[14px] border transition-all duration-150 text-left
-                  ${connectedBotId === b.id
-                    ? 'border-[rgba(0,255,136,0.4)] bg-[rgba(0,255,136,0.06)]'
-                    : 'border-[rgba(0,255,136,0.1)] bg-[#080808] hover:border-[rgba(0,255,136,0.25)]'}`}>
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${b.isActive ? 'bg-[#00ff88]' : 'bg-[rgba(255,255,255,0.2)]'}`}
-                  style={b.isActive ? { boxShadow: '0 0 5px rgba(0,255,136,1)' } : {}} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold">{b.name}</p>
-                  <p className="text-[11px] text-[rgba(255,255,255,0.28)]">{b.handle}</p>
-                </div>
-                {connectedBotId === b.id && (
-                  <span className="text-[10px] font-black text-[#00ff88] bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.3)] rounded-full px-2.5 py-0.5 uppercase tracking-[0.5px]">
-                    Активен
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-        {connectedBot && (
-          <p className="text-[11px] text-[rgba(255,255,255,0.3)] mt-2 pl-1">
-            Фото из хранилища будут доступны в боте <span className="text-[rgba(0,255,136,0.6)]">{connectedBot.handle}</span>
+        <div className="flex gap-2">
+          {(['faceswap', 'undress', 'both'] as PromptMode[]).map(m => (
+            <button key={m} onClick={() => !running && setPromptMode(m)}
+              className={`flex-1 py-2 rounded-[12px] text-[11px] font-black transition-all border
+                ${promptMode === m
+                  ? 'bg-[rgba(0,255,170,0.12)] border-[rgba(0,255,170,0.45)] text-[#00ffaa]'
+                  : 'bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.07)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(0,255,170,0.2)]'}`}>
+              {MODE_LABELS[m]}
+            </button>
+          ))}
+        </div>
+        {needsModelPhoto && !canFaceSwap && (
+          <p className="text-[10px] text-amber-400/70 mt-2 px-1">
+            {t.mods.noModelPhotoHint}
           </p>
         )}
       </div>
+
+      {/* ── Upload zone ── */}
+      <div className="px-5">
+        <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleInput} />
+        <div
+          onClick={() => !running && fileRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); if (!running) setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          className={`w-full rounded-[22px] border-2 border-dashed transition-all duration-300 select-none
+            flex flex-col items-center justify-center gap-3 py-10
+            ${dragOver ? 'border-[#00ffaa] bg-[rgba(0,255,170,0.07)] scale-[0.99]'
+              : running ? 'border-[rgba(0,255,170,0.1)] bg-[#060606] cursor-default'
+              : 'border-[rgba(0,255,170,0.2)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(0,255,170,0.4)] hover:bg-[rgba(0,255,170,0.03)] cursor-pointer'}`}
+          style={dragOver ? { boxShadow: '0 0 36px rgba(0,255,170,0.14)' } : {}}>
+          <div className={`w-16 h-16 rounded-full border flex items-center justify-center transition-all duration-300
+            ${dragOver ? 'bg-[rgba(0,255,170,0.14)] border-[rgba(0,255,170,0.5)] scale-110' : 'bg-[rgba(0,255,170,0.06)] border-[rgba(0,255,170,0.2)]'}`}>
+            <IconPlus size={28} color={dragOver ? '#00ffaa' : 'rgba(0,255,170,0.5)'} />
+          </div>
+          <div className="text-center">
+            <p className="text-[15px] font-bold text-[rgba(255,255,255,0.55)]">
+              {dragOver ? t.mods.dropToUpload : t.mods.uploadRefForProcessing}
+            </p>
+            <p className="text-[11px] text-[rgba(255,255,255,0.22)] mt-1">
+              {photos.length > 0 ? `${photos.length} ${t.mods.photoTab.toLowerCase()} · ${t.mods.tapToGallery.toLowerCase()}` : t.mods.tapOrDrag}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Photos strip ── */}
+      {photos.length > 0 && (
+        <div className="px-5">
+          <div className="flex gap-2.5 overflow-x-auto pb-1.5" style={{ scrollSnapType: 'x mandatory' }}>
+            {photos.map((ph, idx) => (
+              <div key={ph.id}
+                className="w-[70px] h-[88px] flex-shrink-0 relative rounded-[13px] overflow-hidden bg-[#050505]"
+                style={{
+                  scrollSnapAlign: 'start',
+                  border: `1.5px solid ${BORDER[ph.status]}`,
+                  animation: ph.status === 'leaving'
+                    ? 'rollAway 0.42s ease-in both'
+                    : `dropIn 0.38s cubic-bezier(0.34,1.56,0.64,1) ${idx * 0.06}s both`,
+                }}>
+                <img src={ph.previewUrl} className="w-full h-full object-cover" alt="" />
+                {(ph.status === 'uploading' || ph.status === 'processing') && (
+                  <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-1">
+                    <div className="w-5 h-5 rounded-full border-2 border-amber-400/30 border-t-amber-400 animate-spin" />
+                    <p className="text-[7px] font-black text-amber-300 uppercase tracking-[0.5px]">
+                      {ph.status === 'uploading' ? 'Upload' : 'AI'}
+                    </p>
+                  </div>
+                )}
+                {(ph.status === 'done' || ph.status === 'leaving') && (
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-[#00ffaa] flex items-center justify-center"
+                      style={{ boxShadow: '0 0 12px rgba(0,255,170,0.9)' }}>
+                      <IconCheck size={12} color="black" />
+                    </div>
+                  </div>
+                )}
+                {ph.status === 'error' && (
+                  <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-0.5 px-1">
+                    <span className="text-red-400 text-[14px] font-black">✕</span>
+                    {ph.errorMsg && (
+                      <span className="text-[6px] text-red-300/80 text-center leading-tight break-all">
+                        {ph.errorMsg.slice(0, 40)}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {!running && ph.status === 'idle' && (
+                  <button onClick={() => setPhotos(p => p.filter(x => x.id !== ph.id))}
+                    className="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-black/75 flex items-center justify-center">
+                    <IconTrash size={8} color="#ff5555" />
+                  </button>
+                )}
+              </div>
+            ))}
+            {!running && (
+              <button onClick={() => fileRef.current?.click()}
+                className="w-[70px] h-[88px] flex-shrink-0 rounded-[13px] border-2 border-dashed border-[rgba(0,255,170,0.14)] bg-[rgba(255,255,255,0.02)]
+                  hover:border-[rgba(0,255,170,0.35)] transition-all flex items-center justify-center"
+                style={{ scrollSnapAlign: 'start' }}>
+                <IconPlus size={16} color="rgba(0,255,170,0.3)" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Processing status ── */}
+      {running && (
+        <div className="px-5">
+          <div className="p-3.5 bg-[rgba(251,191,36,0.05)] border border-[rgba(251,191,36,0.18)] rounded-[14px] flex items-center gap-3">
+            <div className="w-4 h-4 rounded-full border-2 border-amber-400/25 border-t-amber-400 animate-spin flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-bold text-amber-400">
+                {activeCount > 0 ? `${t.mods.uploadRefForProcessing} ${activeCount}...` : t.mods.finishingLabel}
+              </p>
+              {doneCount > 0 && (
+                <p className="text-[10px] text-[rgba(255,255,255,0.3)] mt-0.5">{doneCount} / {photos.length}</p>
+              )}
+            </div>
+            {doneCount > 0 && <span className="text-[13px] font-black text-[#00ffaa]">{doneCount}/{photos.length}</span>}
+          </div>
+        </div>
+      )}
+
+      {/* ── FaceSwap button ── */}
+      <div className="px-5">
+        <Button fullWidth disabled={!idleCount || running || (needsModelPhoto && !canFaceSwap)} onClick={runFaceSwap}>
+          <IconZap size={18} />
+          {photos.length === 0 ? MODE_LABELS[promptMode]
+            : idleCount > 0 ? `${MODE_LABELS[promptMode]} (${idleCount})`
+            : `${MODE_LABELS[promptMode]} ✓`}
+        </Button>
+        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">генерация $0.10 / фото</p>
+        {doneCount > 0 && !running && (
+          <p className="text-[11px] text-[rgba(0,255,170,0.55)] text-center mt-1">✓ {doneCount} {t.mods.enterStorageBtn.toLowerCase()}</p>
+        )}
+      </div>
+
+      {/* ── Storage preview (glass panel) ── */}
+      <div className="px-4">
+        <div style={{
+          background: 'rgba(255,255,255,0.025)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.07)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+          overflow: 'hidden',
+          padding: '16px',
+        }}>
+          <div className="flex items-center gap-2 mb-3">
+            <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)]">{t.mods.modelStorageLabel}</p>
+            {processingPhotoCount > 0 && (
+              <span className="text-[9px] font-black uppercase tracking-[1px] text-amber-400 flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full border border-amber-400/30 border-t-amber-400 animate-spin inline-block" />
+                {processingPhotoCount} {t.mods.generatingLabel}
+              </span>
+            )}
+          </div>
+          {modelGallery.length === 0 ? (
+            <div className="flex flex-col items-center gap-2.5 py-9">
+              <IconImage size={32} color="rgba(0,255,170,0.2)" />
+              <p className="text-[12px] text-[rgba(255,255,255,0.25)]">{t.mods.processedPhotosHere}</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {reversedGallery.slice(0, 6).map((g, idx) => (
+                  <div key={g.id}
+                    className="aspect-[3/4] rounded-[13px] overflow-hidden border bg-[#050505]"
+                    style={{
+                      borderColor: g.status === 'processing' ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.08)',
+                      ...(newIds.has(g.id) ? { animation: `popIn 0.45s cubic-bezier(0.34,1.56,0.64,1) ${idx * 0.08}s both` } : {}),
+                    }}>
+                    {g.status === 'processing' || !g.url ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-[rgba(255,255,255,0.02)]">
+                        <div className="w-5 h-5 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin" />
+                        <span className="text-[7px] font-black text-amber-400/60 uppercase tracking-[0.5px]">AI</span>
+                      </div>
+                    ) : (
+                      <img src={g.url} className="w-full h-full object-cover" alt="" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setShowStorage(true)}
+                className="w-full mt-3 py-3 rounded-[14px] transition-all active:scale-[0.97]"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.55)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                }}>
+                {t.mods.enterStorageBtn} {modelGallery.length > 6 ? `· ${modelGallery.length} →` : '→'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Storage bottom sheet ── */}
+      <BottomSheet
+        isOpen={showStorage}
+        onClose={() => { setShowStorage(false); setSelectMode(false); setSelectedIds(new Set()) }}
+        title={storageTitle}
+        footer={storageFooter}>
+        {modelGallery.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-12">
+            <IconImage size={40} color="rgba(0,255,170,0.2)" />
+            <p className="text-[13px] text-[rgba(255,255,255,0.3)]">{t.mods.storageEmpty}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 pb-2">
+            {reversedGallery.map((g, idx) => {
+              const isProcessing = g.status === 'processing' || !g.url
+              const readyIdx = reversedGallery.filter((x, i) => i < idx && x.status !== 'processing' && x.url).length
+              return (
+                <div key={g.id}
+                  className="relative aspect-[3/4] rounded-[12px] overflow-hidden border bg-[#050505] cursor-pointer"
+                  style={{ borderColor: isProcessing ? 'rgba(251,191,36,0.3)' : selectedIds.has(g.id) ? 'rgba(0,255,170,0.6)' : 'rgba(0,255,170,0.14)' }}
+                  onClick={() => !isProcessing && (selectMode ? toggleSelect(g.id) : openLightbox(readyIdx))}>
+                  {isProcessing ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-[rgba(255,255,255,0.02)]">
+                      <div className="w-5 h-5 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin" />
+                      <span className="text-[7px] font-black text-amber-400/60 uppercase tracking-[0.5px]">AI</span>
+                    </div>
+                  ) : (
+                    <>
+                      <img src={g.url} className="w-full h-full object-cover" alt="" />
+                      {selectMode && (
+                        <div className="absolute inset-0 bg-black/20 flex items-start justify-start p-1.5">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+                            ${selectedIds.has(g.id) ? 'bg-[#00ffaa] border-[#00ffaa]' : 'bg-black/50 border-white/60'}`}>
+                            {selectedIds.has(g.id) && <IconCheck size={10} color="black" />}
+                          </div>
+                        </div>
+                      )}
+                      {!selectMode && (
+                        <button
+                          onClick={e => { e.stopPropagation(); removeFromGallery(g.id) }}
+                          className="absolute top-1 right-1 w-[20px] h-[20px] rounded-full bg-black/80 flex items-center justify-center border border-[rgba(255,80,80,0.4)] hover:bg-[rgba(255,80,80,0.2)] transition-all">
+                          <IconTrash size={9} color="#ff5555" />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </BottomSheet>
+
+      </>}
+
+      {/* ── Lightbox (portal, renders after BottomSheet closes) ── */}
+      {lightboxIdx !== null && readyGallery[lightboxIdx] && createPortal(
+        <div className="fixed inset-0 bg-black flex flex-col" style={{ zIndex: 9999, animation: 'lbIn 0.2s ease both' }}>
+          {/* Top bar */}
+          <div className="flex items-center justify-center px-4 pt-5 pb-2 flex-shrink-0">
+            <span className="text-[13px] font-bold text-white/50">{lightboxIdx + 1} / {readyGallery.length}</span>
+          </div>
+
+          {/* Photo */}
+          <div className="flex-1 flex items-center justify-center relative min-h-0 px-10">
+            {lightboxIdx > 0 && (
+              <button onClick={() => setLightboxIdx(lightboxIdx - 1)}
+                className="absolute left-2 w-10 h-10 rounded-full bg-black/60 border border-white/15 flex items-center justify-center z-10">
+                <IconBack size={22} color="white" />
+              </button>
+            )}
+            <img
+              src={readyGallery[lightboxIdx].url}
+              className="max-w-full max-h-full object-contain rounded-[10px]"
+              style={{ maxHeight: 'calc(100dvh - 160px)' }}
+              alt=""
+            />
+            {lightboxIdx < readyGallery.length - 1 && (
+              <button onClick={() => setLightboxIdx(lightboxIdx + 1)}
+                className="absolute right-2 w-10 h-10 rounded-full bg-black/60 border border-white/15 flex items-center justify-center z-10">
+                <IconChevronRight size={22} color="white" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom bar */}
+          <div className="flex items-center justify-center gap-3 px-4 pb-8 pt-4 flex-shrink-0">
+            <button
+              onClick={closeLightbox}
+              className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center border border-white/15">
+              <IconX size={20} color="white" />
+            </button>
+            <button
+              onClick={() => downloadPhoto(readyGallery[lightboxIdx!].url, lightboxIdx!)}
+              className="flex items-center gap-2 px-5 py-3 rounded-[14px] bg-[rgba(0,255,170,0.12)] border border-[rgba(0,255,170,0.35)] text-[13px] font-bold text-[#00ffaa]">
+              <IconDownload size={17} color="#00ffaa" />
+              {t.mods.downloadBtn}
+            </button>
+            <button
+              onClick={() => { removeFromGallery(readyGallery[lightboxIdx!].id); closeLightbox() }}
+              className="flex items-center gap-2 px-5 py-3 rounded-[14px] bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.3)] text-[13px] font-bold text-red-400">
+              <IconTrash size={16} color="#f87171" />
+              {t.common.delete}
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

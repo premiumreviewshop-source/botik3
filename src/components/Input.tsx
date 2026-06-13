@@ -1,43 +1,65 @@
-import clsx from 'clsx'
-
 interface Props {
-  label?: string
   value: string
   onChange: (v: string) => void
+  label?: string
   placeholder?: string
   type?: string
-  hint?: string
   textarea?: boolean
-  maxLength?: number
   rows?: number
-  className?: string
+  maxLength?: number
+  disabled?: boolean
   autoFocus?: boolean
 }
 
-export default function Input({ label, value, onChange, placeholder, type = 'text',
-  hint, textarea, maxLength, rows = 4, className, autoFocus }: Props) {
-  const base = clsx(
-    'w-full bg-[#080808] border border-[rgba(0,255,136,0.15)] rounded-[12px] px-4 py-3',
-    'text-[15px] text-tw',
-    'transition-all duration-200',
-    'focus:border-[rgba(0,255,136,0.5)] focus:shadow-[0_0_12px_rgba(0,255,136,0.12)] focus:outline-none',
-    className,
-  )
+const surface: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '16px',
+  color: '#fff',
+  fontSize: '14px',
+  width: '100%',
+  padding: '13px 16px',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+  backdropFilter: 'blur(20px)',
+  boxShadow: '0 1px 0 rgba(255,255,255,0.05) inset',
+  letterSpacing: '-0.01em',
+}
+
+export default function Input({ value, onChange, label, placeholder, type = 'text', textarea, rows = 4, maxLength, disabled, autoFocus }: Props) {
+  const focusStyle = {
+    borderColor: 'rgba(0,255,170,0.45)',
+    boxShadow: '0 0 0 3px rgba(0,255,170,0.1), 0 1px 0 rgba(255,255,255,0.05) inset',
+    background: 'rgba(0,255,170,0.04)',
+  }
+
+  const handleFocus = (e: React.FocusEvent<HTMLElement>) => {
+    Object.assign(e.currentTarget.style, focusStyle)
+  }
+  const handleBlur = (e: React.FocusEvent<HTMLElement>) => {
+    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+    e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.05) inset'
+    e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+  }
 
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-[10px] font-black uppercase tracking-[1.5px] text-[rgba(0,255,136,0.55)]">{label}</label>
+        <label className="text-[10px] font-black uppercase tracking-[1.8px] text-[rgba(255,255,255,0.38)]">
+          {label}
+        </label>
       )}
       {textarea ? (
         <textarea
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          maxLength={maxLength}
           rows={rows}
-          autoFocus={autoFocus}
-          className={clsx(base, 'resize-none leading-relaxed')}
+          maxLength={maxLength}
+          disabled={disabled}
+          style={{ ...surface, resize: 'none', lineHeight: '1.55' }}
+          className="placeholder-[rgba(255,255,255,0.18)]"
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       ) : (
         <input
@@ -45,17 +67,14 @@ export default function Input({ label, value, onChange, placeholder, type = 'tex
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          maxLength={maxLength}
+          disabled={disabled}
           autoFocus={autoFocus}
-          className={base}
+          style={surface}
+          className="placeholder-[rgba(255,255,255,0.18)]"
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       )}
-      <div className="flex justify-between items-center">
-        {hint && <p className="text-[11px] text-tw-d leading-snug">{hint}</p>}
-        {maxLength && (
-          <p className="text-[11px] text-tw-d ml-auto">{value.length}/{maxLength}</p>
-        )}
-      </div>
     </div>
   )
 }

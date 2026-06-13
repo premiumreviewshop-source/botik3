@@ -1,54 +1,71 @@
 import { type ReactNode } from 'react'
-import clsx from 'clsx'
 
 interface Props {
   children: ReactNode
   onClick?: () => void
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
-  size?: 'sm' | 'md' | 'lg'
-  fullWidth?: boolean
   disabled?: boolean
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  fullWidth?: boolean
+  size?: 'sm' | 'md' | 'lg'
   className?: string
-  type?: 'button' | 'submit'
 }
 
 export default function Button({
-  children, onClick, variant = 'primary', size = 'md',
-  fullWidth, disabled, className, type = 'button',
+  children, onClick, disabled, variant = 'primary',
+  fullWidth, size = 'md', className = ''
 }: Props) {
+  const base = `inline-flex items-center justify-center gap-2 font-black transition-all duration-200 active:scale-[0.94] active:brightness-90 select-none ${fullWidth ? 'w-full' : ''}`
+
+  const sizes = {
+    sm: 'px-4 py-2.5 rounded-[14px] text-[13px] tracking-[-0.01em]',
+    md: 'px-5 py-3.5 rounded-[18px] text-[14px] tracking-[-0.01em]',
+    lg: 'px-6 py-4 rounded-[20px] text-[15px] tracking-[-0.01em]',
+  }
+
+  const styles: Record<string, React.CSSProperties> = {
+    primary: {
+      background: disabled
+        ? 'rgba(0,255,170,0.18)'
+        : 'linear-gradient(160deg, #00ffaa 0%, #00dda0 55%, #00c490 100%)',
+      color: disabled ? 'rgba(0,255,170,0.5)' : '#061a10',
+      boxShadow: disabled ? 'none' : '0 6px 28px rgba(0,255,170,0.32), 0 1px 0 rgba(255,255,255,0.3) inset, 0 -1px 0 rgba(0,0,0,0.12) inset',
+      opacity: disabled ? 0.6 : 1,
+      backdropFilter: 'blur(12px)',
+    },
+    secondary: {
+      background: 'rgba(255,255,255,0.06)',
+      color: disabled ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.88)',
+      border: '1px solid rgba(255,255,255,0.12)',
+      boxShadow: '0 2px 16px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.07) inset',
+      backdropFilter: 'blur(20px)',
+      opacity: disabled ? 0.45 : 1,
+    },
+    ghost: {
+      background: 'rgba(0,255,170,0.05)',
+      color: disabled ? 'rgba(0,255,170,0.3)' : 'rgba(0,255,170,0.8)',
+      border: '1px solid rgba(0,255,170,0.18)',
+      boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset',
+      backdropFilter: 'blur(12px)',
+      opacity: disabled ? 0.45 : 1,
+    },
+    danger: {
+      background: 'rgba(255,59,48,0.08)',
+      color: disabled ? 'rgba(255,100,88,0.4)' : 'rgba(255,100,88,0.9)',
+      border: '1px solid rgba(255,59,48,0.25)',
+      boxShadow: '0 2px 16px rgba(255,59,48,0.1), 0 1px 0 rgba(255,255,255,0.04) inset',
+      backdropFilter: 'blur(12px)',
+      opacity: disabled ? 0.45 : 1,
+    },
+  }
+
   return (
     <button
-      type={type}
       onClick={onClick}
       disabled={disabled}
-      className={clsx(
-        'relative overflow-hidden font-bold rounded-btn transition-all duration-200 select-none',
-        'active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none',
-        {
-          'text-sm px-4 py-2.5': size === 'sm',
-          'text-[15px] px-5 py-3.5': size === 'md',
-          'text-base px-6 py-4': size === 'lg',
-          'w-full': fullWidth,
-        },
-        variant === 'primary' && [
-          'bg-[#00ff88] text-black',
-          'shadow-[0_0_20px_rgba(0,255,136,0.4)]',
-          'hover:shadow-[0_0_36px_rgba(0,255,136,0.7)] hover:-translate-y-[1px] hover:brightness-105',
-        ],
-        variant === 'secondary' && [
-          'bg-transparent border border-[rgba(0,255,136,0.25)] text-[rgba(255,255,255,0.8)]',
-          'hover:border-[rgba(0,255,136,0.5)] hover:bg-[rgba(0,255,136,0.06)] hover:text-[#00ff88]',
-        ],
-        variant === 'ghost' && 'text-[#00ff88] hover:text-white transition-colors',
-        variant === 'danger' && 'bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-red-400 hover:bg-[rgba(239,68,68,0.18)]',
-        className,
-      )}
+      className={`${base} ${sizes[size]} ${className}`}
+      style={styles[variant]}
     >
-      {variant === 'primary' && (
-        <span className="pointer-events-none absolute inset-0 animate-shimmer"
-          style={{ background: 'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.3) 50%,transparent 100%)', width: '60%' }} />
-      )}
-      <span className="relative flex items-center justify-center gap-2">{children}</span>
+      {children}
     </button>
   )
 }

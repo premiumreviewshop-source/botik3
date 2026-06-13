@@ -1,0 +1,1 @@
+ALTER TABLE saved_emojis ADD COLUMN IF NOT EXISTS alt_emoji text NOT NULL DEFAULT '✨';

@@ -17,6 +17,14 @@ export type Page =
   | 'module/autopost/captions'
   | 'module/autopost/schedule'
   | 'module/autopost/analytics'
+  | 'admin'
+
+export interface KlingJob {
+  id: string
+  status: 'pending' | 'processing' | 'ready' | 'failed'
+  resultVideoUrl: string
+  createdAt: string
+}
 
 export type NavDir = 'forward' | 'back' | 'tab'
 
@@ -44,6 +52,9 @@ export interface PPVItem {
   title: string
   description: string
   priceStars: number
+  minPriceStars: number
+  bargainingEnabled: boolean
+  triggers: string[]
   mediaType: 'photo' | 'video'
   mediaUrl?: string
   purchases: number
@@ -59,7 +70,7 @@ export interface AIModel {
 
 export interface Transaction {
   id: string
-  type: 'topup' | 'spend' | 'referral'
+  type: 'topup' | 'spend' | 'referral' | 'referral_payout'
   amount: number
   description: string
   date: string
@@ -71,6 +82,7 @@ export interface GeneratedPhoto {
   modelName: string
   url: string
   createdAt: string
+  status?: 'processing' | 'ready' | 'failed'
 }
 
 export interface StoragePhoto {
@@ -101,6 +113,22 @@ export interface SavedFooter {
   gapLines: number
 }
 
+export interface SavedEmoji {
+  id: string
+  stickerId: string
+  label: string
+  alt: string  // the exact Unicode emoji character required by Telegram (documentAttributeCustomEmoji.alt)
+}
+
+export interface Channel {
+  id: string
+  username: string
+  chatId: number | null
+  title: string
+  photoUrl: string | null
+  createdAt: string
+}
+
 export type PlanStatus = 'scheduled' | 'published' | 'cancelled'
 export interface PlanItem {
   id: string
@@ -113,5 +141,6 @@ export interface PlanItem {
   postCaption?: string
   price?: number
   status: PlanStatus
+  publishedAt?: string
   editing: boolean
 }
