@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../../store/app'
 import { useLang } from '../../store/lang'
 import { IconBack, IconPlus, IconBrain, IconTrash, IconDownload } from '../../components/Icons'
@@ -6,6 +6,7 @@ import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
 import type { AIModel } from '../../types'
 import api from '../../api/client'
+import { supabase } from '../../lib/supabase'
 
 const STATUS_CLS: Record<AIModel['status'], string> = {
   ready: 'bg-[rgba(0,255,170,0.08)] text-[#00ffaa] border-[rgba(0,255,170,0.3)]',
@@ -14,9 +15,24 @@ const STATUS_CLS: Record<AIModel['status'], string> = {
 }
 
 function ModelThumb({ url }: { url?: string }) {
+  const [imgUrl, setImgUrl] = useState(url)
   const [err, setErr] = useState(false)
-  if (!url || err) return <IconBrain size={22} color="rgba(0,255,170,0.5)" />
-  return <img src={url} className="w-full h-full object-cover" alt="" onError={() => setErr(true)} />
+  const triedRef = useRef(false)
+
+  const handleError = async () => {
+    if (triedRef.current || !url) { setErr(true); return }
+    triedRef.current = true
+    const match = url.match(/\/model-images\/(.+)$/)
+    if (!match) { setErr(true); return }
+    try {
+      const { data } = await supabase.storage.from('model-images').createSignedUrl(match[1], 3600)
+      if (data?.signedUrl) { setImgUrl(data.signedUrl); return }
+    } catch {}
+    setErr(true)
+  }
+
+  if (!imgUrl || err) return <IconBrain size={22} color="rgba(0,255,170,0.5)" />
+  return <img src={imgUrl} className="w-full h-full object-cover" alt="" onError={handleError} />
 }
 
 export default function Models() {

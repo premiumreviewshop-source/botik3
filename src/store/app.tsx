@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
-import type { Page, NavDir, TgUser, Bot, PPVItem, AIModel, Transaction, GeneratedPhoto, ReadyPost, SavedPrompt, SavedFooter, SavedEmoji, PlanItem } from '../types'
+import type { Page, NavDir, TgUser, Bot, PPVItem, AIModel, Transaction, GeneratedPhoto, ReadyPost, SavedPrompt, SavedFooter, SavedEmoji, PlanItem, ModuleSubscription } from '../types'
 import api from '../api/client'
 import { setTgUserId } from '../lib/tgUser'
 
@@ -33,6 +33,9 @@ function lsSet(key: string, val: unknown) {
 
 interface AppCtx {
   page: Page; dir: NavDir; user: TgUser; balance: number; isAdmin: boolean
+  subscriptions: ModuleSubscription[]
+  setSubscriptions: (s: ModuleSubscription[]) => void
+  hasModuleSub: (module: string) => boolean
   bots: Bot[]; transactions: Transaction[]; ppvItems: PPVItem[]
   models: AIModel[]; selectedBotId: string | null; selectedModelId: string | null
   gallery: GeneratedPhoto[]; uploads: string[]
@@ -82,6 +85,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [contentPlan, setContentPlan] = useState<PlanItem[] | null>(ls('contentPlan', null))
   const [transactions, setTransactions] = useState<Transaction[]>(ls('transactions', []))
   const [isAdmin, setIsAdmin] = useState(false)
+  const [subscriptions, setSubscriptions] = useState<ModuleSubscription[]>([])
+  const hasModuleSub = (module: string) => {
+    const now = new Date()
+    return subscriptions.some(s => s.module_name === module && new Date(s.expires_at) > now)
+  }
   const balance = transactions.filter(t => t.type === 'topup').reduce((s, t) => s + t.amount, 0)
     - transactions.filter(t => t.type === 'spend').reduce((s, t) => s + Math.abs(t.amount), 0)
 
@@ -103,6 +111,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     import('../lib/supabase').then(({ supabase }) => {
       const initData = (window as any).Telegram?.WebApp?.initData ?? ''
       if (initData) {
+        supabase.functions.invoke<{ subscriptions: ModuleSubscription[] }>('payments', {
+          body: { action: 'get_subscriptions', initData }
+        }).then(({ data }) => { if (data?.subscriptions) setSubscriptions(data.subscriptions) }).catch(() => {})
         supabase.functions.invoke('admin', {
           body: {
             action: 'save_profile',
@@ -123,8 +134,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           body: { action: 'track_referral', refereeTgUserId: user.id, referrerTgUserId: refRaw, initData }
         }).catch(() => {})
       }
-      // Check admin status
-      supabase.functions.invoke('admin', { body: { action: 'check_admin', callerTgId: user.id } })
+      // Check admin status — must pass initData for signature verification
+      const adminInitData = (window as any).Telegram?.WebApp?.initData ?? ''
+      supabase.functions.invoke('admin', { body: { action: 'check_admin', initData: adminInitData } })
         .then(({ data }) => { if (data?.isAdmin) setIsAdmin(true) })
         .catch(() => {})
     })
@@ -133,6 +145,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Persist changes to localStorage when they change
   useEffect(() => { lsSet('bots', bots) }, [bots])
   useEffect(() => { lsSet('models', models) }, [models])
+  useEffect(() => { lsSet('gallery', gallery) }, [gallery])
   useEffect(() => { lsSet('readyPosts', readyPosts) }, [readyPosts])
   useEffect(() => { lsSet('savedPrompts', savedPrompts) }, [savedPrompts])
   useEffect(() => { lsSet('savedFooters', savedFooters) }, [savedFooters])
@@ -169,7 +182,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      page, dir, user, balance, isAdmin, bots, transactions, ppvItems, models,
+      page, dir, user, balance, isAdmin, subscriptions, setSubscriptions, hasModuleSub,
+      bots, transactions, ppvItems, models,
       selectedBotId, selectedModelId, gallery, uploads, readyPosts, savedPrompts, savedFooters, savedEmojis, contentPlan,
       navigate, goBack, setSelectedBotId, setSelectedModelId, setBots, setPpvItems, setModels,
       setGallery, setUploads, setReadyPosts, setSavedPrompts, setSavedFooters, setSavedEmojis, setContentPlan, syncContentPlan, setTransactions,

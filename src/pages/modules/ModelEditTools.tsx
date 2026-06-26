@@ -706,7 +706,7 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
 
       setStage(`Генерация 0/${count}...`)
       await Promise.all(posePrompts.map(async (posePrompt) => {
-        const seedTaskId = await submitSeedreamEdit(basePhotoUrl, posePrompt)
+        const seedTaskId = await submitSeedreamEdit(modelUrl, posePrompt)
         const seedUrl = await pollWavespeed(seedTaskId)
         const job = await api.generate.start({ prompt: CAROUSEL_FACESWAP_PROMPT, modelId: model.id, imageUrls: [modelUrl, seedUrl] })
         doneRef.current++
