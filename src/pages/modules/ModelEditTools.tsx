@@ -478,40 +478,48 @@ async function callGrokForOutfit(modelUrl: string, outfitUrl: string): Promise<s
   return text as string
 }
 
-async function submitToWavespeed(imageUrl: string, prompt: string): Promise<string> {
+async function wavespeedSubmit(modelPath: string, images: string[], prompt: string): Promise<string> {
   const key = import.meta.env.VITE_WAVESPEED_API_KEY
   if (!key) throw new Error('VITE_WAVESPEED_API_KEY не настроен')
-  const resp = await fetch('https://api.wavespeed.ai/api/v3/google/nano-banana-pro/edit', {
+  const resp = await fetch(`https://api.wavespeed.ai/api/v3/${modelPath}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image: imageUrl, prompt }),
+    body: JSON.stringify({ images, prompt, enable_safety_checker: false }),
   })
   if (!resp.ok) {
     const body = await resp.text()
-    throw new Error(`Wavespeed submit ${resp.status}: ${body.slice(0, 200)}`)
+    throw new Error(`Wavespeed ${modelPath} ${resp.status}: ${body.slice(0, 300)}`)
   }
   const data = await resp.json()
-  const taskId = data.data?.id
+  const inner = data.data
+  const pollUrl = (inner?.urls as Record<string, string> | undefined)?.get
+  const jobId = inner?.id ?? data.id ?? data.prediction_id
+  const taskId = pollUrl ?? jobId
   if (!taskId) throw new Error('Wavespeed: нет task ID в ответе')
   return taskId as string
 }
 
+async function submitToWavespeed(imageUrl: string, prompt: string): Promise<string> {
+  return wavespeedSubmit('google/nano-banana-pro/edit', [imageUrl], prompt)
+}
+
 async function pollWavespeed(taskId: string): Promise<string> {
   const key = import.meta.env.VITE_WAVESPEED_API_KEY!
+  const pollUrl = taskId.startsWith('http') ? taskId : `https://api.wavespeed.ai/api/v3/predictions/${taskId}`
   for (let i = 0; i < 72; i++) {
     await new Promise(r => setTimeout(r, 5000))
-    const resp = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/fetch`, {
-      headers: { Authorization: `Bearer ${key}` },
-    })
+    const resp = await fetch(pollUrl, { headers: { Authorization: `Bearer ${key}` } })
     if (!resp.ok) continue
     const data = await resp.json()
-    const status = data.data?.status
-    if (status === 'completed') {
-      const url = data.data?.outputs?.[0]
+    const inner = (data.data ?? data) as Record<string, unknown>
+    const status = inner.status as string | undefined
+    if (status === 'completed' || status === 'succeeded') {
+      const outputs = inner.outputs as string[] | undefined
+      const url = outputs?.[0] ?? (inner.output_url as string | undefined)
       if (url) return url as string
       throw new Error('Wavespeed: завершено, но нет URL результата')
     }
-    if (status === 'failed') throw new Error('Wavespeed: генерация завершилась с ошибкой')
+    if (status === 'failed' || status === 'error') throw new Error('Wavespeed: генерация завершилась с ошибкой')
   }
   throw new Error('Wavespeed: таймаут (6 мин)')
 }
@@ -636,18 +644,7 @@ async function callGrokForSceneTransfer(modelUrl: string, refUrl: string): Promi
 }
 
 async function submitNanoBananaWithRef(modelUrl: string, refUrl: string, prompt: string): Promise<string> {
-  const key = import.meta.env.VITE_WAVESPEED_API_KEY
-  if (!key) throw new Error('VITE_WAVESPEED_API_KEY не настроен')
-  const resp = await fetch('https://api.wavespeed.ai/api/v3/google/nano-banana-pro/edit', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image: modelUrl, image_b: refUrl, prompt }),
-  })
-  if (!resp.ok) { const b = await resp.text(); throw new Error(`Wavespeed NB ${resp.status}: ${b.slice(0, 200)}`) }
-  const data = await resp.json()
-  const taskId = data.data?.id
-  if (!taskId) throw new Error('Wavespeed: нет task ID')
-  return taskId as string
+  return wavespeedSubmit('google/nano-banana-pro/edit', [modelUrl, refUrl], prompt)
 }
 
 async function callGrokForPoses(imageUrl: string, count: number): Promise<string[]> {
@@ -677,18 +674,7 @@ async function callGrokForPoses(imageUrl: string, count: number): Promise<string
 }
 
 async function submitSeedreamEdit(imageUrl: string, prompt: string): Promise<string> {
-  const key = import.meta.env.VITE_WAVESPEED_API_KEY
-  if (!key) throw new Error('VITE_WAVESPEED_API_KEY не настроен')
-  const resp = await fetch('https://api.wavespeed.ai/api/v3/seedream-v4.5/edit', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image: imageUrl, prompt }),
-  })
-  if (!resp.ok) { const b = await resp.text(); throw new Error(`Wavespeed Seedream ${resp.status}: ${b.slice(0, 200)}`) }
-  const data = await resp.json()
-  const taskId = data.data?.id
-  if (!taskId) throw new Error('Wavespeed Seedream: нет task ID')
-  return taskId as string
+  return wavespeedSubmit('seedream-v4.5/edit', [imageUrl], prompt)
 }
 
 export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
