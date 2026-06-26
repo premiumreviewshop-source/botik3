@@ -456,7 +456,7 @@ async function callGrokForOutfit(modelUrl: string, outfitUrl: string): Promise<s
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'grok-2-vision-1212',
+      model: 'grok-4.3',
       messages: [{
         role: 'user',
         content: [
@@ -619,7 +619,7 @@ async function callGrokForSceneTransfer(modelUrl: string, refUrl: string): Promi
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'grok-2-vision-1212',
+      model: 'grok-4.3',
       messages: [{ role: 'user', content: [
         { type: 'text', text: SCENE_TRANSFER_SYSTEM },
         { type: 'image_url', image_url: { url: modelUrl } },
@@ -658,7 +658,7 @@ async function callGrokForPoses(imageUrl: string, count: number): Promise<string
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'grok-2-vision-1212',
+      model: 'grok-4.3',
       messages: [{ role: 'user', content: [
         { type: 'text', text: POSE_GENERATOR_SYSTEM + suffix },
         { type: 'image_url', image_url: { url: imageUrl } },
