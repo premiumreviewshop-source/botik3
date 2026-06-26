@@ -39,9 +39,12 @@ if (tg) {
   // Cache user id globally so admin panel can always read it even after fullscreen changes
   const uid = tg.initDataUnsafe?.user?.id
   if (uid) (window as any).__tgUserId = uid
+
+  const isDesktop = tg.platform === 'tdesktop' || tg.platform === 'macos'
+
   tg.ready()
   tg.expand()
-  tg.requestFullscreen?.()
+  if (!isDesktop) tg.requestFullscreen?.()
   tg.enableClosingConfirmation?.()
   tg.onEvent('viewportChanged', applyVH)
   tg.onEvent('safeAreaChanged', applyPadding)
@@ -49,8 +52,8 @@ if (tg) {
   tg.onEvent('fullscreenChanged', () => { applyVH(); applyPadding() })
   applyVH()
   applyPadding()
-  setTimeout(() => { tg.expand(); tg.requestFullscreen?.(); applyVH(); applyPadding() }, 150)
-  setTimeout(() => { tg.expand(); tg.requestFullscreen?.(); applyVH(); applyPadding() }, 500)
+  setTimeout(() => { tg.expand(); if (!isDesktop) tg.requestFullscreen?.(); applyVH(); applyPadding() }, 150)
+  setTimeout(() => { tg.expand(); if (!isDesktop) tg.requestFullscreen?.(); applyVH(); applyPadding() }, 500)
   setTimeout(() => { applyVH(); applyPadding() }, 1200)
 } else {
   applyVH()

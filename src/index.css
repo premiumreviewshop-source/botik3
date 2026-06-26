@@ -26,6 +26,7 @@ html, body {
   padding: 0;
 }
 
+
 body {
   font-family: -apple-system, 'SF Pro Display', system-ui, 'Helvetica Neue', sans-serif;
   color: #ffffff;
@@ -72,7 +73,7 @@ body {
   overflow: hidden;
 }
 
-/* On PC/tablet: centered phone window with frame, plain dark outside */
+/* On PC/tablet: centered, plain dark outside */
 @media (min-width: 500px) {
   body {
     align-items: center;

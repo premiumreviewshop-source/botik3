@@ -12,7 +12,7 @@ export default function AIChatPPV() {
       desc: t.mods.aiChatDesc,
       icon: IconBrain,
       page: 'module/aichat' as const,
-      tag: 'Grok AI',
+      tag: 'AI',
       accent: '#00ffaa',
       border: 'rgba(0,255,170,0.2)',
       cardBg: 'linear-gradient(135deg, rgba(0,30,30,0.85) 0%, rgba(8,11,24,0.95) 100%)',
