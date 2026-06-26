@@ -481,7 +481,7 @@ async function callGrokForOutfit(modelUrl: string, outfitUrl: string): Promise<s
 async function submitToWavespeed(imageUrl: string, prompt: string): Promise<string> {
   const key = import.meta.env.VITE_WAVESPEED_API_KEY
   if (!key) throw new Error('VITE_WAVESPEED_API_KEY не настроен')
-  const resp = await fetch('https://api.wavespeed.ai/api/v3/google/google-nano-banana-pro-edit', {
+  const resp = await fetch('https://api.wavespeed.ai/api/v3/google/nano-banana-pro/edit', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: imageUrl, prompt }),
@@ -638,7 +638,7 @@ async function callGrokForSceneTransfer(modelUrl: string, refUrl: string): Promi
 async function submitNanoBananaWithRef(modelUrl: string, refUrl: string, prompt: string): Promise<string> {
   const key = import.meta.env.VITE_WAVESPEED_API_KEY
   if (!key) throw new Error('VITE_WAVESPEED_API_KEY не настроен')
-  const resp = await fetch('https://api.wavespeed.ai/api/v3/google/google-nano-banana-pro-edit', {
+  const resp = await fetch('https://api.wavespeed.ai/api/v3/google/nano-banana-pro/edit', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: modelUrl, image_b: refUrl, prompt }),
@@ -679,7 +679,7 @@ async function callGrokForPoses(imageUrl: string, count: number): Promise<string
 async function submitSeedreamEdit(imageUrl: string, prompt: string): Promise<string> {
   const key = import.meta.env.VITE_WAVESPEED_API_KEY
   if (!key) throw new Error('VITE_WAVESPEED_API_KEY не настроен')
-  const resp = await fetch('https://api.wavespeed.ai/api/v3/bytedance/bytedance-seedream-v4.5-edit', {
+  const resp = await fetch('https://api.wavespeed.ai/api/v3/seedream-v4.5/edit', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: imageUrl, prompt }),
