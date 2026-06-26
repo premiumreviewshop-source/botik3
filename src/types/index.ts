@@ -28,6 +28,14 @@ export interface KlingJob {
 
 export type NavDir = 'forward' | 'back' | 'tab'
 
+export interface ModuleSubscription {
+  module_name: 'analytics' | 'autopost'
+  plan: 'month' | '3mo' | 'year'
+  amount_usd: number
+  expires_at: string
+  created_at: string
+}
+
 export interface TgUser {
   id: number
   first_name: string
@@ -83,6 +91,8 @@ export interface GeneratedPhoto {
   url: string
   createdAt: string
   status?: 'processing' | 'ready' | 'failed'
+  prompt?: string
+  cost?: number
 }
 
 export interface StoragePhoto {

@@ -171,7 +171,7 @@ export const api = {
       fn<{ ok: boolean }>('delete-bot', { id, initData: getInitData() }),
     reset: (id: string) =>
       fn<{ ok: boolean }>('delete-bot', { id, reset: true, initData: getInitData() }),
-    stats: (id: string, period: 'today' | 'week' | 'month') =>
+    stats: (id: string, period: 'today' | 'week' | 'month' | 'alltime') =>
       fn<{
         messages: number; uniqueChatters: number; ppvSold: number
         ppvRevenue: number; ppvRevenueUsd: number; postsPublished: number
@@ -181,12 +181,12 @@ export const api = {
   },
 
   analytics: {
-    get: (period: 'today' | 'week' | 'month', botId?: string) =>
+    get: (period: 'today' | 'week' | 'month' | 'alltime', botId?: string) =>
       fn<{
         period: string; aiMessages: number; aiChats: number; aiAvgSec: number
         ppvSold: number; ppvRevenue: number; ppvRevenueUsd: number; ppvViews: number
         postsPublished: number; postsReach: number; postsInPlan: number
-        botsActive: number; spark: number[]
+        botsActive: number; spark: number[]; postsSpark?: number[]
         salesHistory: { id: string; createdAt: string; tgUserId: number | null; tgFirstName: string | null; tgUsername: string | null; amountStars: number; amountUsd: number; itemTitle: string | null }[]
       }>('analytics', { period, botId: botId ?? undefined, initData: getInitData() }),
     salesHistory: (botId?: string) =>
@@ -203,7 +203,7 @@ export const api = {
       return (rows as object[]).map(mapModel)
     },
     get: async (id: string) => {
-      const row = ok(await supabase.from('ai_models').select('*').eq('id', id).single())
+      const row = ok(await supabase.from('ai_models').select('*').eq('id', id).eq('tg_user_id', uid()).single())
       return mapModel(row)
     },
     create: (data: { name: string; imageUrls: string[]; prompt?: string }) =>
@@ -226,14 +226,16 @@ export const api = {
         await supabase.from('generations').select('*')
           .eq('tg_user_id', uid())
           .eq('model_id', modelId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: true }),
       )
       return (rows as object[]).map(mapGeneration)
     },
     start: (data: { prompt: string; modelId?: string; imageUrls?: string[] }) =>
       fn<{ id: string; status: string }>('generate-photo', { ...data, initData: getInitData() }),
+    edit: (data: { type: string; modelId: string; imageUrls: string[]; prompt?: string; subMode?: string; userText?: string }) =>
+      fn<{ id: string; status: string }>('edit-photo', { ...data, initData: getInitData() }),
     get: async (id: string) => {
-      const row = ok(await supabase.from('generations').select('*').eq('id', id).single())
+      const row = ok(await supabase.from('generations').select('*').eq('id', id).eq('tg_user_id', uid()).single())
       return mapGeneration(row)
     },
     poll: (id: string) =>
@@ -447,6 +449,22 @@ export const api = {
         counts[h]++
       }
       return counts
+    },
+    publishedByDayHour: async (): Promise<number[][]> => {
+      const { data } = await supabase.from('content_plan')
+        .select('published_at')
+        .eq('tg_user_id', uid())
+        .eq('status', 'published')
+        .not('published_at', 'is', null)
+      // matrix[dayOfWeek][hour], dayOfWeek: 0=Mon...6=Sun
+      const matrix = Array.from({ length: 7 }, () => Array(24).fill(0))
+      for (const r of (data ?? []) as { published_at: string }[]) {
+        const dt = new Date(r.published_at)
+        const dow = (dt.getDay() + 6) % 7
+        const h = dt.getHours()
+        matrix[dow][h]++
+      }
+      return matrix
     },
   },
 
