@@ -704,15 +704,25 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
       setStage(`Нейросеть придумывает ${count} поз...`)
       const posePrompts = await callGrokForPoses(basePhotoUrl, count)
 
-      setStage(`Генерация 0/${count}...`)
-      await Promise.all(posePrompts.map(async (posePrompt) => {
+      // Seedream runs in parallel — no balance writes, safe to parallelize
+      setStage(`Генерация поз 0/${count}...`)
+      const seedUrls = await Promise.all(posePrompts.map(async (posePrompt) => {
         const seedTaskId = await submitSeedreamEdit(basePhotoUrl, posePrompt)
-        const seedUrl = await pollWavespeed(seedTaskId)
-        const job = await api.generate.start({ prompt: CAROUSEL_FACESWAP_PROMPT, modelId: model.id, imageUrls: [modelUrl, seedUrl] })
+        const url = await pollWavespeed(seedTaskId)
         doneRef.current++
-        setStage(`Готово ${doneRef.current}/${count}...`)
-        onNewGen({ id: job.id, modelId: model.id, modelName: model.name, url: '', createdAt: new Date().toISOString(), status: 'processing' })
+        setStage(`Seedream ${doneRef.current}/${count}...`)
+        return url
       }))
+
+      // Wan faceswap runs sequentially — each deducts balance; parallel causes race on deduct_balance
+      doneRef.current = 0
+      const wanModelUrl = model.previewUrl ?? modelUrl
+      for (const seedUrl of seedUrls) {
+        const job = await api.generate.start({ prompt: CAROUSEL_FACESWAP_PROMPT, modelId: model.id, imageUrls: [wanModelUrl, seedUrl] })
+        doneRef.current++
+        setStage(`Faceswap ${doneRef.current}/${count}...`)
+        onNewGen({ id: job.id, modelId: model.id, modelName: model.name, url: '', createdAt: new Date().toISOString(), status: 'processing' })
+      }
       setStage('')
     } catch (e) { setErr(String(e)); setStage('') }
     finally { setRunning(false) }
