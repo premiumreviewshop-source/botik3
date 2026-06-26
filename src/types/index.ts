@@ -90,7 +90,7 @@ export interface GeneratedPhoto {
   modelName: string
   url: string
   createdAt: string
-  status?: 'processing' | 'ready' | 'failed'
+  status?: 'carousel' | 'processing' | 'ready' | 'failed'
   prompt?: string
   cost?: number
 }

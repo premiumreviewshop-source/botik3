@@ -690,38 +690,23 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
   const run = async () => {
     if (!modelPhoto || !refPhoto || running || count < 1) return
     setRunning(true); setErr(''); setStage('Загрузка фото...')
-    doneRef.current = 0
     try {
       const [modelUrl, refUrl] = await Promise.all([resolveUrl(modelPhoto), resolveUrl(refPhoto)])
 
       setStage('Нейросеть анализирует референс...')
       const nanoBananaPrompt = await callGrokForSceneTransfer(modelUrl, refUrl)
 
-      setStage('Генерация базового фото...')
-      const baseTaskId = await submitNanoBananaWithRef(modelUrl, refUrl, nanoBananaPrompt)
-      const basePhotoUrl = await pollWavespeed(baseTaskId)
+      // Hand off the rest to the server-side edge function — runs in background,
+      // user can close the app and results will appear when ready
+      setStage('Запуск генерации...')
+      const result = await api.carousel.generate({
+        modelUrl, refUrl, nanoBananaPrompt, count,
+        modelId: model.id,
+        modelPreviewUrl: model.previewUrl,
+      })
 
-      setStage(`Нейросеть придумывает ${count} поз...`)
-      const posePrompts = await callGrokForPoses(basePhotoUrl, count)
-
-      // Seedream runs in parallel — no balance writes, safe to parallelize
-      setStage(`Генерация поз 0/${count}...`)
-      const seedUrls = await Promise.all(posePrompts.map(async (posePrompt) => {
-        const seedTaskId = await submitSeedreamEdit(basePhotoUrl, posePrompt)
-        const url = await pollWavespeed(seedTaskId)
-        doneRef.current++
-        setStage(`Seedream ${doneRef.current}/${count}...`)
-        return url
-      }))
-
-      // Wan faceswap runs sequentially — each deducts balance; parallel causes race on deduct_balance
-      doneRef.current = 0
-      const wanModelUrl = model.previewUrl ?? modelUrl
-      for (const seedUrl of seedUrls) {
-        const job = await api.generate.start({ prompt: CAROUSEL_FACESWAP_PROMPT, modelId: model.id, imageUrls: [wanModelUrl, seedUrl] })
-        doneRef.current++
-        setStage(`Faceswap ${doneRef.current}/${count}...`)
-        onNewGen({ id: job.id, modelId: model.id, modelName: model.name, url: '', createdAt: new Date().toISOString(), status: 'processing' })
+      for (const id of result.ids) {
+        onNewGen({ id, modelId: model.id, modelName: model.name, url: '', createdAt: new Date().toISOString(), status: 'carousel' })
       }
       setStage('')
     } catch (e) { setErr(String(e)); setStage('') }

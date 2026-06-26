@@ -529,6 +529,11 @@ export const api = {
     },
   },
 
+  carousel: {
+    generate: (data: { modelUrl: string; refUrl: string; nanoBananaPrompt: string; count: number; modelId: string; modelPreviewUrl?: string }) =>
+      fn<{ ids: string[]; status: string }>('carousel-generate', { ...data, initData: getInitData() }),
+  },
+
   webhooks: {
     refresh: (botId: string) => fn<{ ok: boolean }>('refresh-webhook', { botId, tgUserId: uid() }),
   },

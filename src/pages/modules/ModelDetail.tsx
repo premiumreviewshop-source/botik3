@@ -133,7 +133,7 @@ export default function ModelDetail() {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const hasProcessing = gallery.some(
-      g => g.modelId === model.id && (g.status === 'processing' || !g.status),
+      g => g.modelId === model.id && (g.status === 'processing' || g.status === 'carousel' || !g.status),
     )
     if (!hasProcessing) {
       if (photoTimerRef.current) { clearInterval(photoTimerRef.current); photoTimerRef.current = null }
@@ -143,7 +143,7 @@ export default function ModelDetail() {
     photoTimerRef.current = setInterval(reloadModelGens, 5000)
     return () => { if (photoTimerRef.current) { clearInterval(photoTimerRef.current); photoTimerRef.current = null } }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gallery.some(g => g.modelId === model.id && (g.status === 'processing' || !g.status)), model.id])
+  }, [gallery.some(g => g.modelId === model.id && (g.status === 'processing' || g.status === 'carousel' || !g.status)), model.id])
 
   // Reload on tab focus
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -155,7 +155,7 @@ export default function ModelDetail() {
 
   const modelGallery = gallery.filter(g => g.modelId === model.id)
   const reversedGallery = [...modelGallery].reverse()
-  const readyGallery = reversedGallery.filter(g => g.status !== 'processing' && g.url)
+  const readyGallery = reversedGallery.filter(g => g.status !== 'processing' && g.status !== 'carousel' && g.url)
   const modelPhoto = model.previewUrl ?? ''
   const canFaceSwap = !!modelPhoto && !modelPhoto.toLowerCase().includes('.safetensors')
   const needsModelPhoto = selectedTool !== 'nude'
@@ -300,7 +300,7 @@ export default function ModelDetail() {
   const doneCount = photos.filter(p => p.status === 'done').length
   const activeCount = photos.filter(p => p.status === 'uploading' || p.status === 'processing').length
 
-  const processingPhotoCount = modelGallery.filter(g => g.status === 'processing').length
+  const processingPhotoCount = modelGallery.filter(g => g.status === 'processing' || g.status === 'carousel').length
   const readyPhotoCount = modelGallery.filter(g => g.status === 'ready' || !g.status).length
 
   const storageTitle = (
@@ -609,7 +609,7 @@ export default function ModelDetail() {
               <div className="grid grid-cols-3 gap-2">
                 {reversedGallery.slice(0, 6).map((g, idx) => {
                   const isFailed = g.status === 'failed'
-                  const isProc = !isFailed && (g.status === 'processing' || !g.url)
+                  const isProc = !isFailed && (g.status === 'processing' || g.status === 'carousel' || !g.url)
                   return (
                   <div key={g.id}
                     className="relative aspect-[3/4] rounded-[13px] overflow-hidden border bg-[#050505]"
@@ -671,8 +671,8 @@ export default function ModelDetail() {
           <div className="grid grid-cols-3 gap-2 pb-2">
             {reversedGallery.map((g, idx) => {
               const isFailed = g.status === 'failed'
-              const isProcessing = !isFailed && (g.status === 'processing' || !g.url)
-              const readyIdx = reversedGallery.filter((x, i) => i < idx && !['processing','failed'].includes(x.status ?? '') && x.url).length
+              const isProcessing = !isFailed && (g.status === 'processing' || g.status === 'carousel' || !g.url)
+              const readyIdx = reversedGallery.filter((x, i) => i < idx && !['processing','carousel','failed'].includes(x.status ?? '') && x.url).length
               return (
                 <div key={g.id}
                   className="relative aspect-[3/4] rounded-[12px] overflow-hidden border bg-[#050505] cursor-pointer"
