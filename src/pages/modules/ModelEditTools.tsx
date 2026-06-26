@@ -674,7 +674,7 @@ async function callGrokForPoses(imageUrl: string, count: number): Promise<string
 }
 
 async function submitSeedreamEdit(imageUrl: string, prompt: string): Promise<string> {
-  return wavespeedSubmit('seedream-v4.5/edit', [imageUrl], prompt)
+  return wavespeedSubmit('bytedance/seedream-v4.5/edit', [imageUrl], prompt)
 }
 
 export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
