@@ -24,6 +24,24 @@ function extractOutputUrl(data: Record<string, unknown> | undefined): string | u
     ?? (data.image as string | undefined)
 }
 
+async function saveToStorage(url: string, modelId: string, genId: string): Promise<string> {
+  try {
+    const resp = await fetch(url)
+    if (!resp.ok) return url
+    const ct = resp.headers.get('content-type') ?? 'image/jpeg'
+    const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg'
+    const path = `generated/${modelId}/${genId}.${ext}`
+    const bytes = await resp.arrayBuffer()
+    const { error } = await db.storage.from('model-images').upload(path, bytes, { contentType: ct, upsert: true })
+    if (error) { console.error('[generate-photo] storage upload error:', error); return url }
+    const { data } = db.storage.from('model-images').getPublicUrl(path)
+    return data.publicUrl || url
+  } catch (err) {
+    console.error('[generate-photo] saveToStorage error:', err)
+    return url
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -36,7 +54,7 @@ Deno.serve(async (req: Request) => {
     if ('error' in auth) return respond(auth, auth.status)
     const tgUserId = auth.uid
 
-    const balErr = await checkAndDeduct(tgUserId, GENERATION_COST, 'FaceSwap генерация')
+    const balErr = await checkAndDeduct(tgUserId, GENERATION_COST, `FaceSwap генерация · ${new Date().toISOString().slice(0, 19)}`)
     if (balErr) return respond(balErr, 402)
 
     let modelName: string | undefined
@@ -53,6 +71,7 @@ Deno.serve(async (req: Request) => {
         prompt,
         status: 'processing',
         tg_user_id: tgUserId,
+        cost: GENERATION_COST,
       })
       .select()
       .single()
@@ -60,6 +79,7 @@ Deno.serve(async (req: Request) => {
     if (error) return respond({ error: error.message }, 500)
 
     const urls: string[] = Array.isArray(imageUrls) ? imageUrls.filter(Boolean) : []
+    const safeModelId = modelId ?? 'misc'
 
     const requestBody: Record<string, unknown> = { prompt, enable_safety_checker: false }
     if (urls.length > 0) requestBody.images = urls
@@ -99,9 +119,14 @@ Deno.serve(async (req: Request) => {
       const resultUrl = extractOutputUrl(data)
       const wsStatus = (data?.status as string | undefined) ?? ''
       if ((wsStatus === 'completed' || wsStatus === 'succeeded') && resultUrl) {
-        await db.from('generations').update({ status: 'ready', image_url: resultUrl }).eq('id', gen.id)
+        // Save to permanent storage in background; respond immediately
+        saveToStorage(resultUrl, safeModelId, gen.id).then(storedUrl =>
+          db.from('generations').update({ status: 'ready', image_url: storedUrl }).eq('id', gen.id)
+        ).catch(() => {
+          db.from('generations').update({ status: 'ready', image_url: resultUrl }).eq('id', gen.id)
+        })
       } else if (wsStatus === 'failed' || wsStatus === 'error') {
-        await db.from('generations').update({ status: 'failed', image_url: `ERR:ws_failed` }).eq('id', gen.id)
+        await db.from('generations').update({ status: 'failed', image_url: 'ERR:ws_failed' }).eq('id', gen.id)
       }
     } else {
       const errMsg = `ERR:${wsResp.status}:${(wsData?.message as string | undefined) ?? wsText.slice(0, 80)}`

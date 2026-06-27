@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
     const n = Math.min(Math.max(1, Number(count)), 10)
 
     // 1. Deduct balance for all N photos upfront
-    const balErr = await checkAndDeduct(tgUserId, n * COST_PER_PHOTO, `Карусель (${n} фото)`)
+    const balErr = await checkAndDeduct(tgUserId, n * COST_PER_PHOTO, `Карусель (${n} фото) · ${new Date().toISOString().slice(0, 19)}`)
     if (balErr) return respond(balErr, 402)
 
     const now = new Date().toISOString()

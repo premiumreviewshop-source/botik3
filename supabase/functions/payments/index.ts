@@ -63,7 +63,7 @@ async function getUserBalance(tgUserId: string): Promise<number> {
 async function notifyUser(tgUserId: string, amountUsd: number, newBalance: number, method: string) {
   const botToken = Deno.env.get('PLATFORM_BOT_TOKEN') ?? Deno.env.get('BOT_TOKEN') ?? Deno.env.get('TELEGRAM_BOT_TOKEN')
   if (!botToken) return
-  const text = `✅ <b>Баланс пополнен!</b>\n\n💰 Зачислено: <b>+$${amountUsd.toFixed(2)}</b>\n📊 Баланс: <b>$${newBalance.toFixed(2)}</b>\n\n🏦 ${method}`
+  const text = `<b>Поздравляем! Ваш баланс пополнен на +$${amountUsd.toFixed(2)}!<tg-emoji emoji-id="5197434882321567830">💵</tg-emoji></b>\n<blockquote><b>Текущий баланс $${newBalance.toFixed(2)}<tg-emoji emoji-id="5278467510604160626">💰</tg-emoji></b></blockquote>`
   await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -77,11 +77,17 @@ function fmtDate(d: Date): string {
 
 async function creditBalance(tgUserId: string, amountUsd: number, desc: string): Promise<boolean> {
   const now = new Date()
-  const { data, error } = await db.from('transactions').upsert(
+  // Use INSERT ... ON CONFLICT DO NOTHING so partial unique index (topup only) works.
+  // Returns the inserted row only if it was new (not a duplicate).
+  const { data, error } = await db.from('transactions').insert(
     { tg_user_id: String(tgUserId), type: 'topup', amount: amountUsd, description: desc, date: fmtDate(now), created_at: now.toISOString() },
-    { onConflict: 'tg_user_id,description', ignoreDuplicates: true }
   ).select('id')
-  if (error) { console.error('[creditBalance] error:', error.message); return false }
+  if (error) {
+    // Unique violation = already credited (idempotent)
+    if ((error as any).code === '23505') return false
+    console.error('[creditBalance] error:', error.message)
+    return false
+  }
   return (data?.length ?? 0) > 0
 }
 
@@ -199,18 +205,6 @@ Deno.serve(async (req: Request) => {
     const { action, tgUserId, amount, platform } = body
     const botToken = Deno.env.get('PLATFORM_BOT_TOKEN') ?? Deno.env.get('BOT_TOKEN') ?? Deno.env.get('TELEGRAM_BOT_TOKEN') ?? ''
 
-    // ── Debug ──────────────────────────────────────────────────────────────
-    if (action === 'debug_notify') {
-      if (!botToken) return respond({ error: 'no bot token set' })
-      const chatId = String(tgUserId ?? body.chatId ?? '')
-      if (!chatId) return respond({ error: 'tgUserId required' })
-      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: '✅ Тест уведомлений — всё работает!' }),
-      })
-      return respond({ status: res.status, tgResp: await res.json(), botTokenPrefix: botToken.slice(0,8)+'...', chatId })
-    }
-
     // ── get_transactions  [AUTH REQUIRED] ──────────────────────────────────
     if (action === 'get_transactions') {
       const authResult = await requireAuth(body, botToken)
@@ -313,7 +307,11 @@ Deno.serve(async (req: Request) => {
         tg_user_id: uid, type: 'referral_payout', amount: payoutAmt,
         description: `Вывод · ${walletType} · ${walletAddress} · ${ts}`, date: dateStr, created_at: now.toISOString(),
       })
-      await notifyOwner(`💸 <b>Запрос на вывод реферального</b>\nПользователь: <code>${uid}</code>\nСумма: <b>$${payoutAmt.toFixed(2)}</b>\nМетод: ${walletType}\nКошелёк: <code>${walletAddress}</code>`)
+      await db.from('withdrawal_requests').insert({
+        tg_user_id: uid, amount: payoutAmt, wallet_type: walletType, wallet_address: walletAddress,
+        status: 'pending', created_at: now.toISOString(), updated_at: now.toISOString(),
+      })
+      await notifyOwner(`💸 <b>Новая заявка на вывод</b>\nПользователь: <code>${uid}</code>\nСумма: <b>$${payoutAmt.toFixed(2)}</b>\nМетод: ${walletType}\nКошелёк: <code>${walletAddress}</code>\n\nОткрой админку → Выплаты`)
       return respond({ ok: true, amount: payoutAmt })
     }
 
@@ -344,11 +342,14 @@ Deno.serve(async (req: Request) => {
       return respond({ set: setData, info: (await infoRes.json()).result })
     }
 
-    // ── check_cryptobot ────────────────────────────────────────────────────
+    // ── check_cryptobot  [AUTH REQUIRED] ──────────────────────────────────
     if (action === 'check_cryptobot') {
+      const authResult = await requireAuth(body, botToken)
+      if (authResult instanceof Response) return authResult
+      const verifiedId = authResult
+
       const { invoiceId } = body
-      const uid = validUserId(tgUserId)
-      if (!uid || !invoiceId) return respond({ error: 'Missing params' }, 400)
+      if (!invoiceId) return respond({ error: 'Missing invoiceId' }, 400)
       const token = Deno.env.get('CRYPTOBOT_TOKEN')!
       const res = await fetch(`https://pay.crypt.bot/api/getInvoices?invoice_ids=${invoiceId}`, { headers: { 'Crypto-Pay-API-Token': token } })
       const data = await res.json()
@@ -359,6 +360,8 @@ Deno.serve(async (req: Request) => {
       const [, userId, amtStr] = payloadStr.split(':')
       const amountUsd = parseFloat(amtStr ?? '0')
       if (!userId || amountUsd <= 0 || amountUsd > MAX_TOPUP_USD) return respond({ credited: false })
+      // Invoice must belong to the authenticated caller
+      if (userId !== verifiedId) return respond({ error: 'Invoice does not belong to you' }, 403)
       const asset = invoice.asset ?? 'USDT'
       const desc = `Crypto Bot · +$${amountUsd} (${asset}) #${invoice.invoice_id}`
       const { data: existing } = await db.from('transactions').select('id').eq('tg_user_id', userId).eq('description', desc).maybeSingle()
@@ -373,11 +376,14 @@ Deno.serve(async (req: Request) => {
       return respond({ credited: wasInserted })
     }
 
-    // ── check_ton ──────────────────────────────────────────────────────────
+    // ── check_ton  [AUTH REQUIRED] ────────────────────────────────────────
     if (action === 'check_ton') {
-      const { comment, amountUsd } = body
-      const uid = validUserId(tgUserId)
-      if (!uid || !comment) return respond({ error: 'Missing params' }, 400)
+      const authResult = await requireAuth(body, botToken)
+      if (authResult instanceof Response) return authResult
+      const uid = authResult
+
+      const { comment } = body
+      if (!comment) return respond({ error: 'Missing comment' }, 400)
       if (typeof comment !== 'string' || comment.length > 100) return respond({ error: 'Invalid comment' }, 400)
       const walletAddr = Deno.env.get('TON_WALLET_ADDRESS')
       if (!walletAddr) return respond({ error: 'TON_WALLET_ADDRESS not set' }, 500)
@@ -388,95 +394,202 @@ Deno.serve(async (req: Request) => {
       ).catch(() => null)
       if (!tcRes?.ok) return respond({ credited: false, error: 'TonCenter unavailable' })
       const tcData = await tcRes.json()
-      const found = (tcData.result ?? []).some((tx: any) => {
+      const matchedTx = (tcData.result ?? []).find((tx: any) => {
         const msgData = tx.in_msg?.msg_data
         if (msgData?.['@type'] === 'msg.dataText') {
           try { return atob(msgData.text ?? '') === comment } catch { return false }
         }
         return (tx.in_msg?.message ?? '') === comment
       })
-      if (!found) return respond({ credited: false })
+      if (!matchedTx) return respond({ credited: false })
+
+      // Compute amount from on-chain value — never trust client-supplied amountUsd
+      const nanotons = Number(matchedTx.in_msg?.value ?? 0)
+      if (!nanotons || nanotons <= 0) return respond({ credited: false, error: 'Could not read on-chain amount' })
+      let tonPriceUsd = 3.5
+      try {
+        const priceData = await (await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd')).json()
+        tonPriceUsd = priceData['the-open-network']?.usd ?? 3.5
+      } catch { /* use fallback */ }
+      const computedAmountUsd = Math.round((nanotons / 1e9) * tonPriceUsd * 100) / 100
+      const amt = validAmount(computedAmountUsd)
+      if (!amt) return respond({ credited: false, error: 'Computed amount out of range' })
+
       const desc = `TON Keeper · ${comment}`
       const { data: existing } = await db.from('transactions').select('id').eq('tg_user_id', uid).eq('description', desc).maybeSingle()
       if (existing) return respond({ credited: true, alreadyDone: true })
-      const amt = validAmount(amountUsd)
-      if (!amt) return respond({ error: 'Invalid amount' }, 400)
       const wasInserted = await creditBalance(uid, amt, desc)
       if (wasInserted) {
         const newBal = await getUserBalance(uid)
         await notifyUser(uid, amt, newBal, 'TON Keeper')
         await notifyOwner(`💎 <b>TON оплата</b>\nПользователь: <code>${uid}</code>\nСумма: <b>+$${amt}</b>\nКомментарий: <code>${comment}</code>`)
         await payReferralBonus(uid, amt, desc)
+        try { await db.from('pending_ton_payments').update({ credited: true, credited_at: new Date().toISOString() }).eq('comment', comment) } catch { /* ignore */ }
       }
       return respond({ credited: wasInserted })
+    }
+
+    // ── get_pending_ton  [AUTH REQUIRED] ─────────────────────────────────
+    if (action === 'get_pending_ton') {
+      const authResult = await requireAuth(body, botToken)
+      if (authResult instanceof Response) return authResult
+      const uid = authResult
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { data } = await db.from('pending_ton_payments')
+        .select('comment, amount_usd')
+        .eq('tg_user_id', uid)
+        .eq('credited', false)
+        .gte('created_at', cutoff)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      return respond({ pending: data ?? [] })
+    }
+
+    // ── get_subscriptions  [AUTH REQUIRED] ───────────────────────────────────
+    if (action === 'get_subscriptions') {
+      const authResult = await requireAuth(body, botToken)
+      if (authResult instanceof Response) return authResult
+      const uid = authResult
+      const { data } = await db.from('module_subscriptions')
+        .select('module_name, plan, amount_usd, expires_at, created_at')
+        .eq('tg_user_id', uid)
+      return respond({ subscriptions: data ?? [] })
+    }
+
+    // ── subscribe_module  [AUTH REQUIRED] ─────────────────────────────────────
+    if (action === 'subscribe_module') {
+      const authResult = await requireAuth(body, botToken)
+      if (authResult instanceof Response) return authResult
+      const uid = authResult
+
+      const { moduleName, plan } = body
+      const VALID_MODULES = ['analytics', 'autopost']
+      const PLANS: Record<string, { usd: number; days: number; label: string }> = {
+        month: { usd: 19.90, days: 30,  label: '1 месяц'    },
+        '3mo': { usd: 39.90, days: 90,  label: '3 месяца'   },
+        year:  { usd: 99.90, days: 365, label: '1 год'       },
+      }
+      if (!VALID_MODULES.includes(moduleName)) return respond({ error: 'Invalid module' }, 400)
+      if (!PLANS[plan]) return respond({ error: 'Invalid plan' }, 400)
+
+      const { usd, days, label } = PLANS[plan]
+      const balance = await getUserBalance(uid)
+      if (balance < usd) return respond({ error: `Недостаточно средств. Нужно $${usd.toFixed(2)}, на балансе $${balance.toFixed(2)}` }, 402)
+
+      // Deduct from balance
+      const now = new Date()
+      const desc = `Подписка ${moduleName} · ${label} · ${now.toISOString().slice(0, 10)}`
+      const { error: txErr } = await db.from('transactions').insert({
+        tg_user_id: uid, type: 'spend', amount: usd, description: desc,
+        date: fmtDate(now), created_at: now.toISOString(),
+      })
+      if (txErr) return respond({ error: txErr.message }, 500)
+
+      // Create or extend subscription (extend from current expiry if still active)
+      const { data: existing } = await db.from('module_subscriptions')
+        .select('expires_at').eq('tg_user_id', uid).eq('module_name', moduleName).maybeSingle()
+      const base = existing?.expires_at && new Date(existing.expires_at) > now
+        ? new Date(existing.expires_at) : now
+      const expiresAt = new Date(base.getTime() + days * 24 * 60 * 60 * 1000)
+
+      const { error: subErr } = await db.from('module_subscriptions').upsert(
+        { tg_user_id: uid, module_name: moduleName, plan, amount_usd: usd, expires_at: expiresAt.toISOString(), created_at: now.toISOString() },
+        { onConflict: 'tg_user_id,module_name' }
+      )
+      if (subErr) {
+        // Rollback the spend transaction
+        await db.from('transactions').delete().eq('tg_user_id', uid).eq('description', desc)
+        return respond({ error: subErr.message }, 500)
+      }
+
+      return respond({ ok: true, expiresAt: expiresAt.toISOString(), amountUsd: usd })
     }
 
     // ── create_invoice ─────────────────────────────────────────────────────
     if (action !== 'create_invoice') return respond({ error: 'Unknown action' }, 400)
 
+    const authResult = await requireAuth(body, botToken)
+    if (authResult instanceof Response) return authResult
+    const uid = authResult
+
     const amountUsd = validAmount(amount)
     if (!amountUsd) return respond({ error: `Invalid amount (must be > 0 and ≤ ${MAX_TOPUP_USD})` }, 400)
-    const uid = validUserId(tgUserId)
-    if (!uid) return respond({ error: 'Invalid tgUserId' }, 400)
 
-    const baseUrl = Deno.env.get('SUPABASE_URL')!
+    const baseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const currency = (body.currency as string | undefined) ?? undefined
+    const nonce = (body.nonce as string | undefined) ?? Date.now().toString(36)
 
     if (platform === 'tgstars') {
       if (!botToken) return respond({ error: 'PLATFORM_BOT_TOKEN not set' }, 500)
       const stars = usdToStars(amountUsd)
-      const nonce = (body.nonce as string | undefined) ?? Date.now().toString(36)
-      const res = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Пополнение баланса', description: `+$${amountUsd} на ваш счёт`,
-          payload: `topup:${uid}:${amountUsd}:${nonce}`, currency: 'XTR',
-          prices: [{ label: `Баланс +$${amountUsd}`, amount: stars }],
-        }),
-      })
-      const data = await res.json()
+      let tgRes: Response
+      try {
+        tgRes = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'Пополнение баланса', description: `+$${amountUsd} на ваш счёт`,
+            payload: `topup:${uid}:${amountUsd}:${nonce}`, currency: 'XTR',
+            prices: [{ label: `Баланс +$${amountUsd}`, amount: stars }],
+          }),
+        })
+      } catch (e) {
+        return respond({ error: `Telegram API недоступен: ${String(e)}` }, 502)
+      }
+      let data: any
+      try { data = await tgRes.json() } catch { return respond({ error: 'Telegram API: неверный ответ' }, 502) }
       if (!data.ok) return respond({ error: data.description ?? 'Telegram error' }, 500)
       return respond({ url: data.result })
     }
 
     if (platform === 'cryptobot') {
       const token = Deno.env.get('CRYPTOBOT_TOKEN')
-      if (!token) return respond({ error: 'CRYPTOBOT_TOKEN not set' }, 500)
-      await fetch('https://pay.crypt.bot/api/setWebhook', {
-        method: 'POST',
-        headers: { 'Crypto-Pay-API-Token': token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: `${baseUrl}/functions/v1/payments?cb=cryptobot` }),
-      }).catch(() => {})
-      const res = await fetch('https://pay.crypt.bot/api/createInvoice', {
-        method: 'POST',
-        headers: { 'Crypto-Pay-API-Token': token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currency_type: 'fiat', fiat: 'USD', amount: String(amountUsd),
-          description: `Пополнение +$${amountUsd}`, payload: `topup:${uid}:${amountUsd}`,
-          accepted_assets: currency ?? 'USDT,TON',
-        }),
-      })
-      const data = await res.json()
-      if (!data.ok) return respond({ error: data.error?.name ?? 'CryptoBot error' }, 500)
+      if (!token) return respond({ error: 'CRYPTOBOT_TOKEN not configured' }, 500)
+      if (baseUrl) {
+        fetch('https://pay.crypt.bot/api/setWebhook', {
+          method: 'POST',
+          headers: { 'Crypto-Pay-API-Token': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: `${baseUrl}/functions/v1/payments?cb=cryptobot` }),
+        }).catch(() => {})
+      }
+      let cbRes: Response
+      try {
+        cbRes = await fetch('https://pay.crypt.bot/api/createInvoice', {
+          method: 'POST',
+          headers: { 'Crypto-Pay-API-Token': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currency_type: 'fiat', fiat: 'USD', amount: String(amountUsd),
+            description: `Пополнение +$${amountUsd}`, payload: `topup:${uid}:${amountUsd}`,
+            accepted_assets: currency ?? 'USDT,TON',
+          }),
+        })
+      } catch (e) {
+        return respond({ error: `CryptoPay API недоступен: ${String(e)}` }, 502)
+      }
+      let data: any
+      try { data = await cbRes.json() } catch { return respond({ error: 'CryptoPay API: неверный ответ' }, 502) }
+      if (!data.ok) return respond({ error: data.error?.name ?? `CryptoBot error (${cbRes.status})` }, 500)
       return respond({ url: data.result.bot_invoice_url, miniAppUrl: data.result.mini_app_invoice_url, invoiceId: data.result.invoice_id })
     }
 
     if (platform === 'tonkeeper') {
       const walletAddr = Deno.env.get('TON_WALLET_ADDRESS')
-      if (!walletAddr) return respond({ error: 'TON_WALLET_ADDRESS not set' }, 500)
+      if (!walletAddr) return respond({ error: 'TON_WALLET_ADDRESS not configured' }, 500)
       let tonPriceUsd = 3.5
       try {
-        const priceData = await (await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd')).json()
-        tonPriceUsd = priceData['the-open-network']?.usd ?? 3.5
-      } catch { /* use fallback */ }
+        const pr = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd')
+        const prData = await pr.json()
+        tonPriceUsd = prData['the-open-network']?.usd ?? 3.5
+      } catch { /* fallback price */ }
       const nanotons = Math.round((amountUsd / tonPriceUsd) * 1e9)
-      const nonce = Date.now().toString(36)
       const comment = `topup_${uid}_${nonce}`
+      try { await db.from('pending_ton_payments').upsert({ tg_user_id: uid, comment, amount_usd: amountUsd, created_at: new Date().toISOString(), credited: false }, { onConflict: 'comment', ignoreDuplicates: true }) } catch { /* ignore */ }
       return respond({ url: `https://app.tonkeeper.com/transfer/${walletAddr}?amount=${nanotons}&text=${encodeURIComponent(comment)}`, walletAddr, nanotons, comment, tonPriceUsd })
     }
 
     return respond({ error: 'Unknown platform' }, 400)
-  } catch (err) {
-    return respond({ error: String(err) }, 500)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[payments] unhandled error:', msg)
+    return respond({ error: msg }, 500)
   }
 })

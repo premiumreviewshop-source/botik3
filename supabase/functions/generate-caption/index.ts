@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
     if ('error' in auth) return respond(auth, auth.status)
     const tgUserId = auth.uid
 
-    const balErr = await checkAndDeduct(tgUserId, CAPTION_COST, 'Генерация описания')
+    const balErr = await checkAndDeduct(tgUserId, CAPTION_COST, `Генерация описания · ${new Date().toISOString().slice(0, 19)}`)
     if (balErr) return respond(balErr, 402)
 
     const hotUserPrompt: Record<string, string> = {
@@ -59,11 +59,12 @@ Deno.serve(async (req: Request) => {
       tr: 'Bu fotoğraf için sistem talimatlarına göre tam olarak bir açıklama yaz.',
     }
 
-    const systemContent = type === 'custom' && prompt?.trim()
-      ? prompt.trim()
-      : (SYSTEM[lang] ?? SYSTEM.ru)
+    const customPrompt = type === 'custom' && typeof prompt === 'string' && prompt.trim()
+      ? prompt.trim().slice(0, 500)
+      : null
+    const systemContent = customPrompt ?? (SYSTEM[lang] ?? SYSTEM.ru)
 
-    const userContent = type === 'custom'
+    const userContent = customPrompt
       ? 'Напиши описание к этому фото строго следуя инструкциям выше.'
       : (hotUserPrompt[lang] ?? hotUserPrompt.ru)
 

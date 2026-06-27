@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
     const tgUserId = auth.uid
 
     const videoCost = VIDEO_COST[mode ?? '720p'] ?? 0.09
-    const balErr = await checkAndDeduct(tgUserId, videoCost, `Видео генерация ${mode ?? '720p'}`)
+    const balErr = await checkAndDeduct(tgUserId, videoCost, `Видео генерация ${mode ?? '720p'} · ${new Date().toISOString().slice(0, 19)}`)
     if (balErr) return respond(balErr, 402)
 
     const klingBody = {
@@ -75,6 +75,7 @@ Deno.serve(async (req: Request) => {
       character_orientation: characterOrientation ?? 'image',
       prompt: prompt ?? null,
       bot_id: botId ?? null,
+      cost: videoCost,
     }).select().single()
 
     if (error || !job) return respond({ error: error?.message ?? 'db error' }, 500)

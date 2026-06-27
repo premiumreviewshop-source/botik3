@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
     if (!['expression', 'outfit', 'pose', 'create'].includes(type))
       return respond({ error: 'Invalid type' }, 400)
 
-    const balErr = await checkAndDeduct(tgUserId, EDIT_COST, `AI редактирование (${type})`)
+    const balErr = await checkAndDeduct(tgUserId, EDIT_COST, `AI редактирование (${type}) · ${new Date().toISOString().slice(0, 19)}`)
     if (balErr) return respond(balErr, 402)
 
     const now = new Date().toISOString()
