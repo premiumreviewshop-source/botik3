@@ -25,6 +25,12 @@ async function wsStart(key: string, model: string, images: string[], prompt: str
 const respond = (d: unknown, s = 200) =>
   new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
+async function markGenerationsFailed(ids: string[], now: string) {
+  for (const id of ids) {
+    await db.from('generations').update({ status: 'failed', updated_at: now }).eq('id', id).catch(() => {})
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -42,13 +48,14 @@ Deno.serve(async (req: Request) => {
 
     const n = Math.min(Math.max(1, Number(count)), 10)
 
-    // Deduct balance for all N photos upfront
+    // 1. Deduct balance for all N photos upfront
     const balErr = await checkAndDeduct(tgUserId, n * COST_PER_PHOTO, `Карусель (${n} фото)`)
     if (balErr) return respond(balErr, 402)
 
-    // Create N placeholder generation rows (status 'carousel' — ignored by sync-ai-jobs cleanup)
     const now = new Date().toISOString()
     const placeholderIds: string[] = []
+
+    // 2. Create N placeholder generation rows (status 'carousel' — ignored by sync-ai-jobs cleanup)
     for (let i = 0; i < n; i++) {
       const { data: row, error } = await db.from('generations').insert({
         model_id: modelId,
@@ -62,23 +69,14 @@ Deno.serve(async (req: Request) => {
       }).select('id').single()
       if (error || !row) {
         console.error('[carousel-generate] generation insert error:', error)
+        await markGenerationsFailed(placeholderIds, now)
         return respond({ error: 'DB error creating generation' }, 500)
       }
       placeholderIds.push((row as any).id)
     }
 
-    // Start Nano Banana immediately — gives it a head start before first cron tick
-    const wavespeedKey = Deno.env.get('WAVESPEED_API_KEY') ?? ''
-    let nanoBananaJobId: string | null = null
-    try {
-      nanoBananaJobId = await wsStart(wavespeedKey, 'google/nano-banana-pro/edit', [modelUrl, refUrl], nanoBananaPrompt)
-    } catch (err) {
-      console.error('[carousel-generate] Nano Banana start failed:', err)
-      // Store without job ID — cron will retry or mark failed
-    }
-
-    // Persist pipeline state — cron drives it from here
-    const { error: cjErr } = await db.from('carousel_jobs').insert({
+    // 3. Insert carousel_jobs BEFORE starting NB — if this fails the table probably doesn't exist
+    const { data: cjRow, error: cjErr } = await db.from('carousel_jobs').insert({
       tg_user_id: tgUserId,
       model_id: modelId,
       model_url: modelUrl,
@@ -86,22 +84,33 @@ Deno.serve(async (req: Request) => {
       nano_banana_prompt: nanoBananaPrompt,
       model_preview_url: modelPreviewUrl ?? null,
       count: n,
-      stage: nanoBananaJobId ? 'nano_banana' : 'failed',
-      nano_banana_job_id: nanoBananaJobId,
+      stage: 'nano_banana',
+      nano_banana_job_id: null,
       generation_ids: placeholderIds,
       created_at: now,
       updated_at: now,
-    })
+    }).select('id').single()
 
-    if (cjErr) {
+    if (cjErr || !cjRow) {
       console.error('[carousel-generate] carousel_jobs insert error:', cjErr)
-      // Non-fatal — cron won't pick it up but balance already deducted
+      await markGenerationsFailed(placeholderIds, now)
+      return respond({ error: 'carousel_jobs table missing — apply migration in Supabase SQL Editor' }, 500)
     }
 
-    if (!nanoBananaJobId) {
-      for (const id of placeholderIds) {
-        await db.from('generations').update({ status: 'failed', updated_at: now }).eq('id', id)
-      }
+    const cjId = (cjRow as any).id
+
+    // 4. Start Nano Banana — gives it a head start before first cron tick
+    const wavespeedKey = Deno.env.get('WAVESPEED_API_KEY') ?? ''
+    try {
+      const nbJobId = await wsStart(wavespeedKey, 'google/nano-banana-pro/edit', [modelUrl, refUrl], nanoBananaPrompt)
+      await db.from('carousel_jobs').update({
+        nano_banana_job_id: nbJobId,
+        updated_at: new Date().toISOString(),
+      }).eq('id', cjId)
+    } catch (err) {
+      console.error('[carousel-generate] Nano Banana start failed:', err)
+      await db.from('carousel_jobs').update({ stage: 'failed', updated_at: new Date().toISOString() }).eq('id', cjId)
+      await markGenerationsFailed(placeholderIds, now)
       return respond({ error: 'Не удалось запустить Nano Banana' }, 502)
     }
 

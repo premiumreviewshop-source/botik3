@@ -106,6 +106,13 @@ async function processNanoBananaStage(job: any): Promise<void> {
   const basePhotoUrl = result.outputUrl
   console.log('[carousel] NB done, calling Grok for poses...')
 
+  // Lock stage immediately — prevents double-execution if cron overlaps
+  await db.from('carousel_jobs').update({
+    stage: 'calling_grok',
+    base_photo_url: basePhotoUrl,
+    updated_at: now,
+  }).eq('id', job.id)
+
   const xaiKey = Deno.env.get('XAI_API_KEY') ?? ''
   const wavespeedKey = Deno.env.get('WAVESPEED_API_KEY') ?? ''
   let posePrompts: string[]
@@ -234,6 +241,30 @@ Deno.serve(async () => {
   ])
 
   // 3. Advance carousel pipeline stages
+
+  // Timeout any job stuck in 'calling_grok' for more than 5 minutes
+  const grokTimeout = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  const { data: stuckGrok } = await db.from('carousel_jobs')
+    .select('id, generation_ids')
+    .eq('stage', 'calling_grok')
+    .lt('updated_at', grokTimeout)
+  for (const sj of (stuckGrok ?? [])) {
+    console.error('[carousel] stuck calling_grok job, marking failed:', sj.id)
+    await markCarouselFailed(sj.id, sj.generation_ids ?? [], now)
+  }
+
+  // Timeout nano_banana jobs that have no job_id (NB never started) for more than 3 minutes
+  const nbTimeout = new Date(Date.now() - 3 * 60 * 1000).toISOString()
+  const { data: stuckNb } = await db.from('carousel_jobs')
+    .select('id, generation_ids')
+    .eq('stage', 'nano_banana')
+    .is('nano_banana_job_id', null)
+    .lt('updated_at', nbTimeout)
+  for (const sj of (stuckNb ?? [])) {
+    console.error('[carousel] nano_banana job with no job_id, marking failed:', sj.id)
+    await markCarouselFailed(sj.id, sj.generation_ids ?? [], now)
+  }
+
   const { data: carouselJobs } = await db
     .from('carousel_jobs')
     .select('*')
@@ -254,6 +285,8 @@ Deno.serve(async () => {
       models: models?.length ?? 0,
       gens: gens?.length ?? 0,
       carousel: carouselJobs?.length ?? 0,
+      stuck_grok: stuckGrok?.length ?? 0,
+      stuck_nb: stuckNb?.length ?? 0,
     }),
     { headers: { 'Content-Type': 'application/json' } },
   )
