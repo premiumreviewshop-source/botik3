@@ -2,12 +2,6 @@ import { useEffect, useState } from 'react'
 import { useApp } from '../store/app'
 import { useLang } from '../store/lang'
 
-const SERVICES = [
-  { icon: '📸', label: 'Фото', price: '$0.10' },
-  { icon: '🎬', label: 'Видео', price: '$0.09' },
-  { icon: '✍️', label: 'Описания', price: '$0.025' },
-  { icon: '🤖', label: 'Модель', price: '$0.075' },
-]
 
 export default function InsufficientBalanceModal() {
   const [visible, setVisible] = useState(false)
@@ -120,25 +114,6 @@ export default function InsufficientBalanceModal() {
                 </p>
               </div>
             )}
-          </div>
-
-          {/* Services row */}
-          <div
-            className="mx-5 mb-5 rounded-[14px] px-4 py-3.5"
-            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}
-          >
-            <p className="text-[9px] font-black uppercase tracking-[2px] mb-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
-              Стоимость услуг
-            </p>
-            <div className="grid grid-cols-4 gap-1">
-              {SERVICES.map(s => (
-                <div key={s.label} className="flex flex-col items-center gap-1">
-                  <span className="text-[16px]">{s.icon}</span>
-                  <span className="text-[9.5px] font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>{s.label}</span>
-                  <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.28)' }}>{s.price}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Divider */}
