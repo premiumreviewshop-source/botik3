@@ -141,7 +141,7 @@ async function processGeneration(
       if (!finalPrompt) finalPrompt = 'Reference to image. Change her facial expression to a natural smile. Keep all other features identical.'
 
     } else if (type === 'outfit') {
-      finalPrompt = OUTFIT_PROMPT
+      finalPrompt = userPrompt ?? OUTFIT_PROMPT
       finalImages = publicUrls.slice(0, 2)
 
     } else if (type === 'pose') {
@@ -246,7 +246,13 @@ Deno.serve(async (req: Request) => {
       return respond({ error: 'Invalid type' }, 400)
 
     const useNB = model === 'nb'
-    const EDIT_COST = useNB ? 0.07 : 0.10
+    const EDIT_COSTS: Record<string, Record<string, number>> = {
+      outfit:     { nb: 0.22,  wan: 0.125 },
+      pose:       { nb: 0.20,  wan: 0.125 },
+      create:     { nb: 0.30,  wan: 0.15  },
+      expression: { nb: 0.20,  wan: 0.125 },
+    }
+    const EDIT_COST = EDIT_COSTS[type]?.[useNB ? 'nb' : 'wan'] ?? 0.10
 
     const balErr = await checkAndDeduct(tgUserId, EDIT_COST, `AI редактирование (${type}) · ${new Date().toISOString().slice(0, 19)}`)
     if (balErr) return respond(balErr, 402)

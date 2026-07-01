@@ -299,8 +299,8 @@ type PhotoModelChoice = 'nb' | 'wan'
 
 function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onChange: (v: PhotoModelChoice) => void }) {
   const opts = [
-    { id: 'nb' as const, name: 'Nano Banana', desc: 'Быстрее · стиль', price: '$0.07', color: '#ffd96b' },
-    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Качество · реализм', price: '$0.10', color: '#6bffd9' },
+    { id: 'nb' as const, name: 'Nano Banana', desc: 'Быстрее · стиль', color: '#ffd96b' },
+    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Качество · реализм', color: '#6bffd9' },
   ]
   return (
     <div className="flex gap-2 mt-3">
@@ -313,10 +313,7 @@ function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onCh
               background: active ? `${o.color}10` : 'rgba(255,255,255,0.02)',
               borderColor: active ? `${o.color}40` : 'rgba(255,255,255,0.07)',
             }}>
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-black" style={{ color: active ? o.color : 'rgba(255,255,255,0.65)' }}>{o.name}</span>
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: active ? `${o.color}18` : 'rgba(255,255,255,0.05)', color: active ? o.color : 'rgba(255,255,255,0.28)' }}>{o.price}</span>
-            </div>
+            <span className="text-[12px] font-black" style={{ color: active ? o.color : 'rgba(255,255,255,0.65)' }}>{o.name}</span>
             <p className="text-[9px] leading-tight" style={{ color: 'rgba(255,255,255,0.25)' }}>{o.desc}</p>
           </button>
         )
@@ -384,51 +381,6 @@ async function callGrokForOutfit(modelUrl: string, outfitUrl: string): Promise<s
   return text as string
 }
 
-async function wavespeedSubmit(modelPath: string, images: string[], prompt: string): Promise<string> {
-  const key = import.meta.env.VITE_WAVESPEED_API_KEY
-  if (!key) throw new Error('VITE_WAVESPEED_API_KEY не настроен')
-  const resp = await fetch(`https://api.wavespeed.ai/api/v3/${modelPath}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ images, prompt, enable_safety_checker: false }),
-  })
-  if (!resp.ok) {
-    const body = await resp.text()
-    throw new Error(`Wavespeed ${modelPath} ${resp.status}: ${body.slice(0, 300)}`)
-  }
-  const data = await resp.json()
-  const inner = data.data
-  const pollUrl = (inner?.urls as Record<string, string> | undefined)?.get
-  const jobId = inner?.id ?? data.id ?? data.prediction_id
-  const taskId = pollUrl ?? jobId
-  if (!taskId) throw new Error('Wavespeed: нет task ID в ответе')
-  return taskId as string
-}
-
-async function submitToWavespeed(imageUrl: string, prompt: string): Promise<string> {
-  return wavespeedSubmit('google/nano-banana-pro/edit', [imageUrl], prompt)
-}
-
-async function pollWavespeed(taskId: string): Promise<string> {
-  const key = import.meta.env.VITE_WAVESPEED_API_KEY!
-  const pollUrl = taskId.startsWith('http') ? taskId : `https://api.wavespeed.ai/api/v3/predictions/${taskId}`
-  for (let i = 0; i < 72; i++) {
-    await new Promise(r => setTimeout(r, 5000))
-    const resp = await fetch(pollUrl, { headers: { Authorization: `Bearer ${key}` } })
-    if (!resp.ok) continue
-    const data = await resp.json()
-    const inner = (data.data ?? data) as Record<string, unknown>
-    const status = inner.status as string | undefined
-    if (status === 'completed' || status === 'succeeded') {
-      const outputs = inner.outputs as string[] | undefined
-      const url = outputs?.[0] ?? (inner.output_url as string | undefined)
-      if (url) return url as string
-      throw new Error('Wavespeed: завершено, но нет URL результата')
-    }
-    if (status === 'failed' || status === 'error') throw new Error('Wavespeed: генерация завершилась с ошибкой')
-  }
-  throw new Error('Wavespeed: таймаут (6 мин)')
-}
 
 // ── Outfit Tool ────────────────────────────────────────────────────────────────
 
@@ -438,6 +390,7 @@ export function OutfitTool({ model, onNewGen, gallery }: EditToolProps) {
   const [running, setRunning] = useState(false)
   const [stage, setStage] = useState('')
   const [err, setErr] = useState('')
+  const [photoModel, setPhotoModel] = useState<PhotoModelChoice>('nb')
 
   const run = async () => {
     if (!modelPhoto || !outfitPhoto || running) return
@@ -446,11 +399,9 @@ export function OutfitTool({ model, onNewGen, gallery }: EditToolProps) {
       const [modelUrl, outfitUrl] = await Promise.all([resolveUrl(modelPhoto), resolveUrl(outfitPhoto)])
       setStage('Нейросеть анализирует одежду...')
       const prompt = await callGrokForOutfit(modelUrl, outfitUrl)
-      setStage('Генерация...')
-      const taskId = await submitToWavespeed(modelUrl, prompt)
-      setStage('Генерация...')
-      const resultUrl = await pollWavespeed(taskId)
-      onNewGen({ id: taskId, modelId: model.id, modelName: model.name, url: resultUrl, createdAt: new Date().toISOString(), status: 'ready' })
+      setStage('Запуск генерации...')
+      const job = await api.generate.edit({ type: 'outfit', modelId: model.id, imageUrls: [modelUrl, outfitUrl], prompt, model: photoModel })
+      onNewGen(makePlaceholder(job, model))
       setStage('')
     } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
     finally { setRunning(false) }
@@ -466,7 +417,8 @@ export function OutfitTool({ model, onNewGen, gallery }: EditToolProps) {
         <Button fullWidth disabled={!modelPhoto || !outfitPhoto || running} onClick={run}>
           <IconZap size={16} />{running ? (stage || 'Генерация...') : 'Сменить одежду'}
         </Button>
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">$0.10 за генерацию</p>
+        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
+        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">{photoModel === 'nb' ? '$0.22' : '$0.125'} за генерацию</p>
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
       <ToolInfo text="Загрузи фото модели и фото с нужной одеждой. Нейросеть перенесёт одежду, сохранив лицо, тело и позу." />
@@ -604,7 +556,7 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
           <IconZap size={16} />{running ? (stage || 'Генерация...') : `Создать карусель (${count} фото)`}
         </Button>
         <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">
-          ${(0.10 * count).toFixed(2)} за {count} {count === 1 ? 'фото' : 'фото'}
+          $0.325 × {count} = ${(0.325 * count).toFixed(2)} за {count} фото
         </p>
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
@@ -763,7 +715,7 @@ export function PhotoEditTool({ model, onNewGen, gallery }: EditToolProps) {
         </Button>
         <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
         <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">
-          {photoModel === 'nb' ? `$0.07 × ${count} = $${(0.07 * count).toFixed(2)}` : `$0.10 × ${count} = $${(0.10 * count).toFixed(2)}`}
+          {photoModel === 'nb' ? `$0.20 × ${count} = $${(0.20 * count).toFixed(2)}` : `$0.125 × ${count} = $${(0.125 * count).toFixed(2)}`}
         </p>
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
@@ -806,7 +758,7 @@ export function CreatePhotoTool({ model, onNewGen, gallery }: EditToolProps) {
           <IconZap size={16} />{running ? (stage || 'Генерация...') : 'Создать новое фото'}
         </Button>
         <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">{photoModel === 'nb' ? '$0.07' : '$0.10'} за генерацию</p>
+        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">{photoModel === 'nb' ? '$0.30' : '$0.15'} за генерацию</p>
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
       <ToolInfo text="Загрузи фото модели и референс. Нейросеть реплицирует сцену с твоей моделью." />

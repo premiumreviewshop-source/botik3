@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
     if (!prompt) return respond({ error: 'prompt required' }, 400)
 
     const useNB = model === 'nb'
-    const GENERATION_COST = useNB ? 0.07 : 0.10
+    const GENERATION_COST = useNB ? 0.20 : 0.125
     const modelPath = useNB ? NB_ID : WAN_ID()
 
     const botToken = Deno.env.get('PLATFORM_BOT_TOKEN') ?? Deno.env.get('BOT_TOKEN') ?? ''

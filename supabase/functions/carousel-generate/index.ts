@@ -4,7 +4,7 @@ import { verifyAuth } from '../_shared/auth.ts'
 import { checkAndDeduct } from '../_shared/balance.ts'
 
 const WAVESPEED_BASE = () => Deno.env.get('WAVESPEED_BASE_URL') ?? 'https://api.wavespeed.ai/api/v3'
-const COST_PER_PHOTO = 0.10
+const COST_PER_PHOTO = 0.325
 
 async function wsStart(key: string, model: string, images: string[], prompt: string): Promise<string> {
   const resp = await fetch(`${WAVESPEED_BASE()}/${model}`, {

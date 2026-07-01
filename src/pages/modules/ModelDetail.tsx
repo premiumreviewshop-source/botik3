@@ -561,8 +561,8 @@ export default function ModelDetail() {
           {/* NB / WAN model selector */}
           <div className="flex gap-2 mt-3">
             {([
-              { id: 'nb' as const, name: 'Nano Banana', desc: 'Быстрее · стиль', price: '$0.07', color: '#ffd96b' },
-              { id: 'wan' as const, name: 'WAN 2.7', desc: 'Качество · реализм', price: '$0.10', color: '#6bffd9' },
+              { id: 'nb' as const, name: 'Nano Banana', desc: 'Быстрее · стиль', price: '$0.20', color: '#ffd96b' },
+              { id: 'wan' as const, name: 'WAN 2.7', desc: 'Качество · реализм', price: '$0.125', color: '#6bffd9' },
             ]).map(o => {
               const active = photoModel === o.id
               return (
@@ -581,7 +581,7 @@ export default function ModelDetail() {
               )
             })}
           </div>
-          <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">генерация {photoModel === 'nb' ? '$0.07' : '$0.10'} / фото</p>
+          <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">генерация {photoModel === 'nb' ? '$0.20' : '$0.125'} / фото</p>
           {doneCount > 0 && !running && (
             <p className="text-[11px] text-[rgba(0,255,170,0.55)] text-center mt-1">✓ {doneCount} {t.mods.enterStorageBtn.toLowerCase()}</p>
           )}

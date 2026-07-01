@@ -4,8 +4,8 @@ import { checkAndDeduct } from '../_shared/balance.ts'
 import { verifyAuth } from '../_shared/auth.ts'
 
 const KLING_COSTS: Record<string, Record<string, number>> = {
-  '2.6': { '720p': 0.09, '1080p': 0.12 },
-  '3.0': { '720p': 0.15, '1080p': 0.20 },
+  '2.6': { '720p': 0.09, '1080p': 0.125 },
+  '3.0': { '720p': 0.13, '1080p': 0.17  },
 }
 
 const KLING_BASE = 'https://api.kie.ai/api/v1'
