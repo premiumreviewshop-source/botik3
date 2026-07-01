@@ -295,26 +295,6 @@ function makePlaceholder(job: { id: string }, model: AIModel): GeneratedPhoto {
 
 interface EditToolProps { model: AIModel; onNewGen: (g: GeneratedPhoto) => void; gallery: string[] }
 
-// ── Sub-mode toggle ────────────────────────────────────────────────────────────
-
-function SubModeToggle({ mode, onChange }: { mode: 'ref' | 'text'; onChange: (m: 'ref' | 'text') => void }) {
-  return (
-    <div className="px-5">
-      <div className="flex gap-1.5 p-1 rounded-[14px]" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-        {([['ref', 'По фото-референсу'], ['text', 'По пожеланию']] as const).map(([k, label]) => (
-          <button key={k} onClick={() => onChange(k)}
-            className="flex-1 py-2 rounded-[10px] text-[11px] font-black transition-all"
-            style={mode === k
-              ? { background: 'rgba(0,255,170,0.14)', border: '1px solid rgba(0,255,170,0.4)', color: '#00ffaa' }
-              : { background: 'transparent', border: '1px solid transparent', color: 'rgba(255,255,255,0.35)' }}>
-            {label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── Outfit Tool helpers ────────────────────────────────────────────────────────
 
 const OUTFIT_GROK_SYSTEM = `Ты — эксперт по работе с референсами, переносу одежды и точному контролю над генерацией.
