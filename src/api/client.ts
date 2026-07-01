@@ -537,7 +537,7 @@ export const api = {
   },
 
   carousel: {
-    generate: (data: { modelUrl: string; refUrl: string; nanoBananaPrompt: string; count: number; modelId: string; modelPreviewUrl?: string }) =>
+    generate: (data: { modelUrl: string; refUrl: string; nanoBananaPrompt: string; count: number; modelId: string; modelPreviewUrl?: string; model?: 'nb' | 'wan' }) =>
       fn<{ ids: string[]; status: string }>('carousel-generate', { ...data, initData: getInitData() }),
   },
 

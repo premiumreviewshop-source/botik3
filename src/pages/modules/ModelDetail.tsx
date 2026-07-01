@@ -432,10 +432,11 @@ export default function ModelDetail() {
       {/* ── Photo mode content ── */}
       {mainMode === 'photo' && <>
 
-      {/* ── Tool selector pill ── */}
+      {/* ── Tool selector tab bar ── */}
       <ToolSelector selected={selectedTool} onSelect={t => { setSelectedTool(t); setPhotos([]) }} />
 
-      {/* ── New tools ── */}
+      {/* ── Tool content (carpet animation on switch) ── */}
+      <div key={selectedTool} style={{ animation: 'toolCarpet 0.22s cubic-bezier(0.34,1.15,0.64,1) both' }}>
       {selectedTool === 'carousel'   && <CarouselTool    model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
       {selectedTool === 'outfit'     && <OutfitTool      model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
       {selectedTool === 'pose'       && <PhotoEditTool   model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
@@ -587,6 +588,7 @@ export default function ModelDetail() {
           )}
         </div>
       </>}
+      </div>
 
       {/* ── Storage preview (glass panel) ── */}
       <div className="px-4">

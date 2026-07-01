@@ -105,74 +105,28 @@ export const TOOLS: { id: ToolType; label: string; desc: string; longDesc: strin
 // ── Tool Selector: active card + bottom sheet picker ──────────────────────────
 
 export function ToolSelector({ selected, onSelect }: { selected: ToolType; onSelect: (t: ToolType) => void }) {
-  const [open, setOpen] = useState(false)
-  const tool = TOOLS.find(t => t.id === selected)!
-
   return (
-    <>
-      {/* Active tool card */}
-      <div className="px-5">
-        <button onClick={() => setOpen(true)}
-          className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[20px] border transition-all active:scale-[0.97]"
-          style={{ background: `${tool.color}0e`, borderColor: `${tool.color}30`, boxShadow: `0 0 24px ${tool.color}0a` }}>
-          <div className="w-11 h-11 rounded-[14px] flex items-center justify-center flex-shrink-0"
-            style={{ background: `${tool.color}1c`, border: `1px solid ${tool.color}28` }}>
-            <ToolIcon id={tool.id} color={tool.color} size={22} />
-          </div>
-          <div className="flex-1 text-left min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-black leading-none" style={{ color: tool.color }}>{tool.label}</span>
-              {tool.isNew && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide" style={{ background: `${tool.color}22`, color: tool.color }}>NEW</span>}
-            </div>
-            <p className="text-[12px] text-[rgba(255,255,255,0.38)] leading-tight mt-1 truncate">{tool.desc}</p>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+    <div className="px-4">
+      <style>{`@keyframes toolCarpet{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <div className="flex gap-1 p-1 rounded-[16px] overflow-x-auto" style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.06)', scrollbarWidth: 'none' }}>
+        {TOOLS.map(t => {
+          const active = t.id === selected
+          return (
+            <button key={t.id} onClick={() => onSelect(t.id)}
+              className="flex-shrink-0 flex flex-col items-center gap-1 py-2 px-2.5 rounded-[11px] transition-all active:scale-[0.93]"
+              style={{
+                background: active ? `${t.color}14` : 'transparent',
+                border: `1px solid ${active ? t.color + '38' : 'transparent'}`,
+                minWidth: 56,
+              }}>
+              <ToolIcon id={t.id} color={active ? t.color : 'rgba(255,255,255,0.28)'} size={17} />
+              <span className="text-[9px] font-black leading-none text-center whitespace-nowrap"
+                style={{ color: active ? t.color : 'rgba(255,255,255,0.28)' }}>{t.label}</span>
+            </button>
+          )
+        })}
       </div>
-
-      {/* Bottom sheet with all tools */}
-      {open && createPortal(
-        <div className="fixed inset-0 z-[200] flex flex-col justify-end"
-          style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(8px)' }}
-          onClick={() => setOpen(false)}>
-          <style>{`@keyframes carpetUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
-          <div className="flex flex-col rounded-t-[28px] overflow-hidden"
-            style={{ background: 'linear-gradient(180deg,#0f0f1a 0%,#090910 100%)', borderTop: '1px solid rgba(255,255,255,0.08)', animation: 'carpetUp 0.35s cubic-bezier(0.34,1.15,0.64,1) both', maxHeight: '84vh' }}
-            onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-[rgba(255,255,255,0.12)] rounded-full mx-auto mt-3 mb-1 flex-shrink-0" />
-            <p className="text-[9px] font-black uppercase tracking-[2.5px] text-[rgba(255,255,255,0.2)] text-center py-3 flex-shrink-0">Выбрать инструмент</p>
-            <div className="overflow-y-auto px-4 pb-8 flex flex-col gap-2.5" style={{ scrollbarWidth: 'none' }}>
-              {TOOLS.map(t => {
-                const active = t.id === selected
-                return (
-                  <button key={t.id}
-                    onClick={() => { onSelect(t.id); setOpen(false) }}
-                    className="flex items-start gap-3.5 px-4 py-3.5 rounded-[18px] border text-left transition-all active:scale-[0.97]"
-                    style={{
-                      background: active ? `${t.color}12` : 'rgba(255,255,255,0.03)',
-                      borderColor: active ? `${t.color}40` : 'rgba(255,255,255,0.06)',
-                    }}>
-                    <div className="w-11 h-11 rounded-[14px] flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${t.color}1a`, border: `1px solid ${t.color}28` }}>
-                      <ToolIcon id={t.id} color={active ? t.color : 'rgba(255,255,255,0.5)'} size={20} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className="text-[14px] font-black" style={{ color: active ? t.color : 'rgba(255,255,255,0.9)' }}>{t.label}</span>
-                        {t.isNew && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide" style={{ background: `${t.color}20`, color: t.color }}>NEW</span>}
-                        {active && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.28)] uppercase tracking-wide ml-auto">активно</span>}
-                      </div>
-                      <p className="text-[12px] leading-[1.5] text-[rgba(255,255,255,0.38)]">{t.longDesc}</p>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-    </>
+    </div>
   )
 }
 
@@ -497,6 +451,7 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
   const [running, setRunning] = useState(false)
   const [stage, setStage] = useState('')
   const [err, setErr] = useState('')
+  const [photoModel, setPhotoModel] = useState<PhotoModelChoice>('nb')
 
   const run = async () => {
     if (!modelPhoto || !refPhoto || running || count < 1) return
@@ -507,13 +462,12 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
       setStage('Нейросеть анализирует референс...')
       const nanoBananaPrompt = await callGrokForSceneTransfer(modelUrl, refUrl)
 
-      // Hand off the rest to the server-side edge function — runs in background,
-      // user can close the app and results will appear when ready
       setStage('Запуск генерации...')
       const result = await api.carousel.generate({
         modelUrl, refUrl, nanoBananaPrompt, count,
         modelId: model.id,
         modelPreviewUrl: model.previewUrl,
+        model: photoModel,
       })
 
       for (const id of result.ids) {
@@ -555,7 +509,8 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
         <Button fullWidth disabled={!modelPhoto || !refPhoto || running || !countStr || count < 1} onClick={run}>
           <IconZap size={16} />{running ? (stage || 'Генерация...') : `Создать карусель (${count} фото)`}
         </Button>
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">
+        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
+        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">
           $0.325 × {count} = ${(0.325 * count).toFixed(2)} за {count} фото
         </p>
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}

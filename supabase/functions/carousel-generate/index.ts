@@ -4,6 +4,8 @@ import { verifyAuth } from '../_shared/auth.ts'
 import { checkAndDeduct } from '../_shared/balance.ts'
 
 const WAVESPEED_BASE = () => Deno.env.get('WAVESPEED_BASE_URL') ?? 'https://api.wavespeed.ai/api/v3'
+const NB_ID = 'google/nano-banana-pro/edit'
+const WAN_ID = () => Deno.env.get('WAN_MODEL_ID') ?? 'alibaba/wan-2.7/image-edit-pro'
 const COST_PER_PHOTO = 0.325
 
 async function wsStart(key: string, model: string, images: string[], prompt: string): Promise<string> {
@@ -36,7 +38,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { modelUrl, refUrl, nanoBananaPrompt, count, modelId, modelPreviewUrl, initData } = body
+    const { modelUrl, refUrl, nanoBananaPrompt, count, modelId, modelPreviewUrl, initData, model } = body
+    const stage1Model = model === 'wan' ? WAN_ID() : NB_ID
 
     if (!modelUrl || !refUrl || !nanoBananaPrompt || !count || !modelId)
       return respond({ error: 'Missing required fields' }, 400)
@@ -102,7 +105,7 @@ Deno.serve(async (req: Request) => {
     // 4. Start Nano Banana — gives it a head start before first cron tick
     const wavespeedKey = Deno.env.get('WAVESPEED_API_KEY') ?? ''
     try {
-      const nbJobId = await wsStart(wavespeedKey, 'google/nano-banana-pro/edit', [modelUrl, refUrl], nanoBananaPrompt)
+      const nbJobId = await wsStart(wavespeedKey, stage1Model, [modelUrl, refUrl], nanoBananaPrompt)
       await db.from('carousel_jobs').update({
         nano_banana_job_id: nbJobId,
         updated_at: new Date().toISOString(),
