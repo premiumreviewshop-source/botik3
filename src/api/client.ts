@@ -12,14 +12,20 @@ function ok<T>(result: { data: T | null; error: { message: string } | null }): N
   return result.data as NonNullable<T>
 }
 
+export class BalanceError extends Error {
+  constructor(msg: string) { super(msg); this.name = 'BalanceError' }
+}
+
 async function fn<T>(name: string, body?: object): Promise<T> {
   const { data, error } = await supabase.functions.invoke<T>(name, { body })
   if (error) {
+    const status = (error as any).context?.status
     let msg = error.message
     try {
-      const body = await (error as any).context?.json?.()
-      if (body?.error) msg = body.error
+      const respBody = await (error as any).context?.json?.()
+      if (respBody?.error) msg = respBody.error
     } catch {}
+    if (status === 402) throw new BalanceError(msg)
     throw new Error(msg)
   }
   return data!

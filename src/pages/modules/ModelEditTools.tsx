@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { IconPlus, IconZap } from '../../components/Icons'
 import Button from '../../components/Button'
-import api from '../../api/client'
+import api, { BalanceError } from '../../api/client'
 import type { AIModel, GeneratedPhoto } from '../../types'
 import { supabaseUrl, supabaseKey } from '../../lib/supabase'
 
@@ -382,7 +382,7 @@ export function ExpressionTool({ model, onNewGen, gallery }: EditToolProps) {
         const job = await api.generate.edit({ type: 'expression', modelId: model.id, imageUrls: [modelUrl], subMode: 'text', userText: wishText.trim() })
         onNewGen(makePlaceholder(job, model))
       }
-    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (_m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } }
+    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } }
     finally { setRunning(false) }
   }
 
@@ -546,7 +546,7 @@ export function OutfitTool({ model, onNewGen, gallery }: EditToolProps) {
       const resultUrl = await pollWavespeed(taskId)
       onNewGen({ id: taskId, modelId: model.id, modelName: model.name, url: resultUrl, createdAt: new Date().toISOString(), status: 'ready' })
       setStage('')
-    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (_m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
+    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
     finally { setRunning(false) }
   }
 
@@ -709,7 +709,7 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
         onNewGen({ id, modelId: model.id, modelName: model.name, url: '', createdAt: new Date().toISOString(), status: 'carousel' })
       }
       setStage('')
-    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (_m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
+    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
     finally { setRunning(false) }
   }
 
@@ -855,7 +855,7 @@ export function PhotoEditTool({ model, onNewGen, gallery }: EditToolProps) {
         })
       )
       jobs.forEach(job => onNewGen(makePlaceholder(job, model)))
-    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (_m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } }
+    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } }
     finally { setRunning(false) }
   }
 
@@ -939,7 +939,7 @@ export function PoseTool({ model, onNewGen, gallery }: EditToolProps) {
         onNewGen(makePlaceholder(job, model))
       }
       setStage('')
-    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (_m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
+    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
     finally { setRunning(false) }
   }
 
@@ -994,7 +994,7 @@ export function CreatePhotoTool({ model, onNewGen, gallery }: EditToolProps) {
       const job = await api.generate.edit({ type: 'create', modelId: model.id, imageUrls: [modelUrl, refUrl] })
       onNewGen(makePlaceholder(job, model))
       setStage('')
-    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (_m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
+    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
     finally { setRunning(false) }
   }
 

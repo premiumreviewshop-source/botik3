@@ -4,7 +4,7 @@ import { useLang } from '../../store/lang'
 import { IconBack, IconZap, IconPlus, IconTrash, IconCheck, IconRefresh, IconFlame, IconEdit, IconLink, IconSparkle } from '../../components/Icons'
 import Button from '../../components/Button'
 import BottomSheet from '../../components/BottomSheet'
-import api from '../../api/client'
+import api, { BalanceError } from '../../api/client'
 
 type Lang = 'en' | 'ru' | 'tr'
 type Preset = 'hot' | 'custom'
@@ -141,7 +141,7 @@ export default function AutoPostCaptions() {
         captionText = result.caption
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+        if (err instanceof BalanceError) {
           window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
           setBulkGenerating(false); setBulkProgress(0); return
         }
@@ -188,7 +188,7 @@ export default function AutoPostCaptions() {
       setCaption(result.caption)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+      if (err instanceof BalanceError) {
         window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
         setLoading(false); return
       }

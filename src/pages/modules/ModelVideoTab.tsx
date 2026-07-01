@@ -3,7 +3,7 @@ import { useApp } from '../../store/app'
 import { useLang } from '../../store/lang'
 import { IconVideo, IconZap, IconCheck, IconX, IconTrash, IconDownload } from '../../components/Icons'
 import Button from '../../components/Button'
-import api from '../../api/client'
+import api, { BalanceError } from '../../api/client'
 import type { AIModel, GeneratedPhoto, KlingJob } from '../../types'
 import { supabaseUrl, supabaseKey } from '../../lib/supabase'
 import { downloadFile } from '../../lib/download'
@@ -137,7 +137,7 @@ export default function ModelVideoTab({ model, gallery }: Props) {
       setMotionVideoFile(null)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+      if (err instanceof BalanceError) {
         window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
         setStatus('idle')
       } else {

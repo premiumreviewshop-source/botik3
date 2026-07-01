@@ -5,7 +5,7 @@ import { IconBack, IconPlus, IconCheck, IconTrash, IconRefresh, IconBrain, IconI
 import Button from '../../components/Button'
 import Input from '../../components/Input'
 import BottomSheet from '../../components/BottomSheet'
-import api from '../../api/client'
+import api, { BalanceError } from '../../api/client'
 import { supabase, supabaseUrl, supabaseKey } from '../../lib/supabase'
 
 const SAFE_MIME: Record<string, string> = {
@@ -126,7 +126,7 @@ export default function CreateModel() {
       throw new Error('Timeout exceeded')
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+      if (err instanceof BalanceError) {
         window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
       } else {
         setGenError(msg)
@@ -180,7 +180,7 @@ export default function CreateModel() {
       setOwnDone(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+      if (err instanceof BalanceError) {
         window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
       } else {
         setOwnError(msg)
