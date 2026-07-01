@@ -3,10 +3,9 @@ import { db } from '../_shared/db.ts'
 import { checkAndDeduct } from '../_shared/balance.ts'
 import { verifyAuth } from '../_shared/auth.ts'
 
-const GENERATION_COST = 0.10
-
 const WAVESPEED_BASE = () => Deno.env.get('WAVESPEED_BASE_URL') ?? 'https://api.wavespeed.ai/api/v3'
 const WAN_ID = () => Deno.env.get('WAN_MODEL_ID') ?? 'alibaba/wan-2.7/image-edit-pro'
+const NB_ID = 'google/nano-banana-pro/edit'
 
 const respond = (d: unknown, s = 200) =>
   new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -46,8 +45,12 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { prompt, modelId, imageUrls, initData } = await req.json()
+    const { prompt, modelId, imageUrls, initData, model } = await req.json()
     if (!prompt) return respond({ error: 'prompt required' }, 400)
+
+    const useNB = model === 'nb'
+    const GENERATION_COST = useNB ? 0.07 : 0.10
+    const modelPath = useNB ? NB_ID : WAN_ID()
 
     const botToken = Deno.env.get('PLATFORM_BOT_TOKEN') ?? Deno.env.get('BOT_TOKEN') ?? ''
     const auth = await verifyAuth(initData, botToken)
@@ -84,10 +87,9 @@ Deno.serve(async (req: Request) => {
     const requestBody: Record<string, unknown> = { prompt, enable_safety_checker: false }
     if (urls.length > 0) requestBody.images = urls
 
-    const wanId = WAN_ID()
-    console.log(`POST /api/v3/${wanId}:`, JSON.stringify(requestBody).slice(0, 300))
+    console.log(`POST /api/v3/${modelPath}:`, JSON.stringify(requestBody).slice(0, 300))
 
-    const wsResp = await fetch(`${WAVESPEED_BASE()}/${wanId}`, {
+    const wsResp = await fetch(`${WAVESPEED_BASE()}/${modelPath}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

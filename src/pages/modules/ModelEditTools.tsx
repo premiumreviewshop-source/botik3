@@ -295,6 +295,36 @@ function makePlaceholder(job: { id: string }, model: AIModel): GeneratedPhoto {
 
 interface EditToolProps { model: AIModel; onNewGen: (g: GeneratedPhoto) => void; gallery: string[] }
 
+type PhotoModelChoice = 'nb' | 'wan'
+
+function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onChange: (v: PhotoModelChoice) => void }) {
+  const opts = [
+    { id: 'nb' as const, name: 'Nano Banana', desc: 'Быстрее · стиль', price: '$0.07', color: '#ffd96b' },
+    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Качество · реализм', price: '$0.10', color: '#6bffd9' },
+  ]
+  return (
+    <div className="flex gap-2 mt-3">
+      {opts.map(o => {
+        const active = value === o.id
+        return (
+          <button key={o.id} onClick={() => onChange(o.id)}
+            className="flex-1 flex flex-col gap-1 px-3 py-2.5 rounded-[13px] border transition-all active:scale-[0.97] text-left"
+            style={{
+              background: active ? `${o.color}10` : 'rgba(255,255,255,0.02)',
+              borderColor: active ? `${o.color}40` : 'rgba(255,255,255,0.07)',
+            }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-black" style={{ color: active ? o.color : 'rgba(255,255,255,0.65)' }}>{o.name}</span>
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: active ? `${o.color}18` : 'rgba(255,255,255,0.05)', color: active ? o.color : 'rgba(255,255,255,0.28)' }}>{o.price}</span>
+            </div>
+            <p className="text-[9px] leading-tight" style={{ color: 'rgba(255,255,255,0.25)' }}>{o.desc}</p>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Outfit Tool helpers ────────────────────────────────────────────────────────
 
 const OUTFIT_GROK_SYSTEM = `Ты — эксперт по работе с референсами, переносу одежды и точному контролю над генерацией.
@@ -654,6 +684,7 @@ export function PhotoEditTool({ model, onNewGen, gallery }: EditToolProps) {
   const [entries, setEntries] = useState<EditEntry[]>([{ prompt: '', photo: null }])
   const [running, setRunning] = useState(false)
   const [err, setErr] = useState('')
+  const [photoModel, setPhotoModel] = useState<PhotoModelChoice>('nb')
   const photoRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null])
 
   const updateCount = (n: number) => {
@@ -680,7 +711,7 @@ export function PhotoEditTool({ model, onNewGen, gallery }: EditToolProps) {
       const jobs = await Promise.all(
         validEntries.map(async e => {
           const photoUrl = e.photo ? await resolveUrl(e.photo) : mainUrl!
-          return api.generate.edit({ type: 'pose', modelId: model.id, imageUrls: [photoUrl], prompt: e.prompt.trim() })
+          return api.generate.edit({ type: 'pose', modelId: model.id, imageUrls: [photoUrl], prompt: e.prompt.trim(), model: photoModel })
         })
       )
       jobs.forEach(job => onNewGen(makePlaceholder(job, model)))
@@ -730,8 +761,9 @@ export function PhotoEditTool({ model, onNewGen, gallery }: EditToolProps) {
           <IconZap size={16} />
           {running ? 'Генерация...' : count > 1 ? `Изменить (${count} фото)` : 'Изменить фото'}
         </Button>
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">
-          $0.10 × {count} = ${(0.10 * count).toFixed(2)}
+        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
+        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">
+          {photoModel === 'nb' ? `$0.07 × ${count} = $${(0.07 * count).toFixed(2)}` : `$0.10 × ${count} = $${(0.10 * count).toFixed(2)}`}
         </p>
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
@@ -748,6 +780,7 @@ export function CreatePhotoTool({ model, onNewGen, gallery }: EditToolProps) {
   const [running, setRunning] = useState(false)
   const [stage, setStage] = useState('')
   const [err, setErr] = useState('')
+  const [photoModel, setPhotoModel] = useState<PhotoModelChoice>('nb')
 
   const run = async () => {
     if (!modelPhoto || !refPhoto || running) return
@@ -755,7 +788,7 @@ export function CreatePhotoTool({ model, onNewGen, gallery }: EditToolProps) {
     try {
       const [modelUrl, refUrl] = await Promise.all([resolveUrl(modelPhoto), resolveUrl(refPhoto)])
       setStage('Анализ референса...')
-      const job = await api.generate.edit({ type: 'create', modelId: model.id, imageUrls: [modelUrl, refUrl] })
+      const job = await api.generate.edit({ type: 'create', modelId: model.id, imageUrls: [modelUrl, refUrl], model: photoModel })
       onNewGen(makePlaceholder(job, model))
       setStage('')
     } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
@@ -772,7 +805,8 @@ export function CreatePhotoTool({ model, onNewGen, gallery }: EditToolProps) {
         <Button fullWidth disabled={!modelPhoto || !refPhoto || running} onClick={run}>
           <IconZap size={16} />{running ? (stage || 'Генерация...') : 'Создать новое фото'}
         </Button>
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">$0.10 за генерацию</p>
+        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
+        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">{photoModel === 'nb' ? '$0.07' : '$0.10'} за генерацию</p>
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
       <ToolInfo text="Загрузи фото модели и референс. Нейросеть реплицирует сцену с твоей моделью." />

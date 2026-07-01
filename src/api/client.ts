@@ -236,9 +236,9 @@ export const api = {
       )
       return (rows as object[]).map(mapGeneration)
     },
-    start: (data: { prompt: string; modelId?: string; imageUrls?: string[] }) =>
+    start: (data: { prompt: string; modelId?: string; imageUrls?: string[]; model?: 'nb' | 'wan' }) =>
       fn<{ id: string; status: string }>('generate-photo', { ...data, initData: getInitData() }),
-    edit: (data: { type: string; modelId: string; imageUrls: string[]; prompt?: string; subMode?: string; userText?: string }) =>
+    edit: (data: { type: string; modelId: string; imageUrls: string[]; prompt?: string; subMode?: string; userText?: string; model?: 'nb' | 'wan' }) =>
       fn<{ id: string; status: string }>('edit-photo', { ...data, initData: getInitData() }),
     get: async (id: string) => {
       const row = ok(await supabase.from('generations').select('*').eq('id', id).eq('tg_user_id', uid()).single())
@@ -527,6 +527,7 @@ export const api = {
       characterOrientation?: 'image' | 'video'
       prompt?: string
       botId?: string
+      klingModel?: '2.6' | '3.0'
     }) => fn<{ id: string; taskId: string; status: string }>('kling-video', { ...data, initData: getInitData() }),
     poll: (id: string) => fn<KlingJob>('poll-kling-video', { id }),
     remove: async (id: string) => {

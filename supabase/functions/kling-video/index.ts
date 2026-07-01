@@ -3,7 +3,10 @@ import { db } from '../_shared/db.ts'
 import { checkAndDeduct } from '../_shared/balance.ts'
 import { verifyAuth } from '../_shared/auth.ts'
 
-const VIDEO_COST: Record<string, number> = { '720p': 0.09, '1080p': 0.12 }
+const KLING_COSTS: Record<string, Record<string, number>> = {
+  '2.6': { '720p': 0.09, '1080p': 0.12 },
+  '3.0': { '720p': 0.15, '1080p': 0.20 },
+}
 
 const KLING_BASE = 'https://api.kie.ai/api/v1'
 const klingKey = () => Deno.env.get('KLING_API_KEY') ?? ''
@@ -17,7 +20,7 @@ Deno.serve(async (req: Request) => {
   try {
     const {
       modelId, inputImageUrl, motionVideoUrl,
-      mode, characterOrientation, prompt, botId, initData,
+      mode, characterOrientation, prompt, botId, initData, klingModel,
     } = await req.json()
 
     if (!inputImageUrl || !motionVideoUrl) {
@@ -29,12 +32,13 @@ Deno.serve(async (req: Request) => {
     if ('error' in auth) return respond(auth, auth.status)
     const tgUserId = auth.uid
 
-    const videoCost = VIDEO_COST[mode ?? '720p'] ?? 0.09
-    const balErr = await checkAndDeduct(tgUserId, videoCost, `Видео генерация ${mode ?? '720p'} · ${new Date().toISOString().slice(0, 19)}`)
+    const klingVer = (klingModel === '3.0') ? '3.0' : '2.6'
+    const videoCost = (KLING_COSTS[klingVer] ?? KLING_COSTS['2.6'])[mode ?? '720p'] ?? 0.09
+    const balErr = await checkAndDeduct(tgUserId, videoCost, `Видео генерация Kling ${klingVer} ${mode ?? '720p'} · ${new Date().toISOString().slice(0, 19)}`)
     if (balErr) return respond(balErr, 402)
 
     const klingBody = {
-      model: 'kling-2.6/motion-control',
+      model: `kling-${klingVer}/motion-control`,
       input: {
         input_urls: [inputImageUrl],
         video_urls: [motionVideoUrl],

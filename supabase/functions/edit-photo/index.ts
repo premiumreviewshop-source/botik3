@@ -5,7 +5,7 @@ import { checkAndDeduct } from '../_shared/balance.ts'
 
 const WAVESPEED_BASE = () => Deno.env.get('WAVESPEED_BASE_URL') ?? 'https://api.wavespeed.ai/api/v3'
 const WAN_ID = () => Deno.env.get('WAN_MODEL_ID') ?? 'alibaba/wan-2.7/image-edit-pro'
-const EDIT_COST = 0.10
+const NB_ID = 'google/nano-banana-pro/edit'
 
 // ── Storage helper ────────────────────────────────────────────────────────────
 
@@ -122,6 +122,7 @@ async function processGeneration(
   wavespeedKey: string,
   xaiKey: string,
   xaiModel: string,
+  useNB: boolean,
 ): Promise<void> {
   try {
     const publicUrls = await Promise.all(imageUrls.map(ensurePublicUrl))
@@ -163,13 +164,13 @@ async function processGeneration(
       if (!finalPrompt) finalPrompt = 'A photorealistic portrait of a beautiful woman, professional studio lighting, high quality.'
     }
 
-    const wanId = WAN_ID()
+    const modelPath = useNB ? NB_ID : WAN_ID()
     const requestBody: Record<string, unknown> = { prompt: finalPrompt, enable_safety_checker: false }
     if (finalImages.length > 0) requestBody.images = finalImages
 
-    console.log(`[edit-photo] POST /api/v3/${wanId}`, JSON.stringify(requestBody).slice(0, 300))
+    console.log(`[edit-photo] POST /api/v3/${modelPath}`, JSON.stringify(requestBody).slice(0, 300))
 
-    const wavResp = await fetch(`${WAVESPEED_BASE()}/${wanId}`, {
+    const wavResp = await fetch(`${WAVESPEED_BASE()}/${modelPath}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${wavespeedKey}` },
       body: JSON.stringify(requestBody),
@@ -232,7 +233,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { type, modelId, imageUrls, prompt: userPrompt, subMode, userText, initData } = body
+    const { type, modelId, imageUrls, prompt: userPrompt, subMode, userText, initData, model } = body
 
     const botToken = Deno.env.get('PLATFORM_BOT_TOKEN') ?? Deno.env.get('BOT_TOKEN') ?? ''
     const auth = await verifyAuth(initData, botToken)
@@ -243,6 +244,9 @@ Deno.serve(async (req: Request) => {
       return respond({ error: 'Missing required fields' }, 400)
     if (!['expression', 'outfit', 'pose', 'create'].includes(type))
       return respond({ error: 'Invalid type' }, 400)
+
+    const useNB = model === 'nb'
+    const EDIT_COST = useNB ? 0.07 : 0.10
 
     const balErr = await checkAndDeduct(tgUserId, EDIT_COST, `AI редактирование (${type}) · ${new Date().toISOString().slice(0, 19)}`)
     if (balErr) return respond(balErr, 402)
@@ -266,7 +270,7 @@ Deno.serve(async (req: Request) => {
     const xaiModel = Deno.env.get('XAI_MODEL') ?? 'grok-4.3'
 
     // Fire-and-forget: Grok call is slow, respond to client immediately
-    processGeneration(genId, type, modelId, imageUrls, userPrompt, subMode, userText, wavespeedKey, xaiKey, xaiModel)
+    processGeneration(genId, type, modelId, imageUrls, userPrompt, subMode, userText, wavespeedKey, xaiKey, xaiModel, useNB)
       .catch(err => {
         console.error('[edit-photo] background task failed:', err)
         db.from('generations').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', genId).catch(() => {})

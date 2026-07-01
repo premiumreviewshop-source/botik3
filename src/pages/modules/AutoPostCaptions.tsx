@@ -7,7 +7,7 @@ import BottomSheet from '../../components/BottomSheet'
 import api, { BalanceError } from '../../api/client'
 
 type Lang = 'en' | 'ru' | 'tr'
-type Preset = 'hot' | 'custom'
+type Preset = 'hot' | 'romantic' | 'playful' | 'mystery' | 'custom'
 
 function renderPreview(raw: string, emojis: { label: string }[]): string {
   if (!raw.trim()) return ''
@@ -34,6 +34,33 @@ const HOT_TEXT: Record<Lang, string> = {
   en: "You can't handle what's coming tonight 🔥 VIP drop — first come first served.",
   ru: "Ты не готов к тому, что будет ночью 🔥 Эксклюзив в VIP — кто первый, того и тапки.",
   tr: "Bu gece hazır değilsin 🔥 VIP'te özel içerik.",
+}
+
+const PRESETS: Record<Exclude<Preset, 'hot' | 'custom'>, { label: string; emoji: string; text: Record<Lang, string> }> = {
+  romantic: {
+    label: 'Романтичное', emoji: '💕',
+    text: {
+      en: "Every message makes my heart skip 💕 Thinking about you all day...",
+      ru: "Каждое сообщение заставляет сердце биться 💕 Думала о тебе весь день...",
+      tr: "Her mesaj kalbimi hızlandırıyor 💕 Seni bütün gün düşündüm...",
+    },
+  },
+  playful: {
+    label: 'Игривое', emoji: '😏',
+    text: {
+      en: "Guess what I'm hiding tonight 😏 Tip to unlock the full set~",
+      ru: "Угадай, что прячу 😏 Тип для доступа к полному сету~",
+      tr: "Ne sakladığımı tahmin et 😏 Bugün tam sete erişim~",
+    },
+  },
+  mystery: {
+    label: 'Загадочное', emoji: '✨',
+    text: {
+      en: "There's a version of me you haven't seen yet ✨ Tonight you find out.",
+      ru: "Есть версия меня, которую ещё не видел ✨ Сегодня ночью узнаешь.",
+      tr: "Henüz görmediğin bir ben var ✨ Bu gece öğreniyorsun.",
+    },
+  },
 }
 function SL({ children }: { children: string }) {
   return <p className="text-[9px] font-black uppercase tracking-[1.5px] text-[rgba(0,255,170,0.55)] mb-2">{children}</p>
@@ -133,26 +160,31 @@ export default function AutoPostCaptions() {
     for (let i = 0; i < bulkPhotos.length; i++) {
       const photoUrl = bulkPhotos[i]
       let captionText = ''
-      try {
-        const result = await api.captions.generate({
-          prompt: customText,
-          lang,
-          type: preset,
-          footerText: useFooter && footerText.trim() ? footerText : undefined,
-          gapLines,
-          imageUrl: photoUrl,
-        })
-        captionText = result.caption
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        if (err instanceof BalanceError) {
-          window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
-          setBulkGenerating(false); setBulkProgress(0); return
-        }
-        captionText = preset === 'custom'
-          ? (customText || HOT_TEXT[lang])
-          : HOT_TEXT[lang]
+      if (preset === 'romantic' || preset === 'playful' || preset === 'mystery') {
+        captionText = PRESETS[preset].text[lang]
         if (useFooter && footerText.trim()) captionText = `${captionText}${'\n'.repeat(gapLines + 1)}${footerText}`
+      } else {
+        try {
+          const result = await api.captions.generate({
+            prompt: customText,
+            lang,
+            type: preset,
+            footerText: useFooter && footerText.trim() ? footerText : undefined,
+            gapLines,
+            imageUrl: photoUrl,
+          })
+          captionText = result.caption
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          if (err instanceof BalanceError) {
+            window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
+            setBulkGenerating(false); setBulkProgress(0); return
+          }
+          captionText = preset === 'custom'
+            ? (customText || HOT_TEXT[lang])
+            : HOT_TEXT[lang]
+          if (useFooter && footerText.trim()) captionText = `${captionText}${'\n'.repeat(gapLines + 1)}${footerText}`
+        }
       }
       newPosts.push({
         id: `${Date.now()}_${i}`,
@@ -178,6 +210,12 @@ export default function AutoPostCaptions() {
   }
 
   const generate = async () => {
+    if (preset === 'romantic' || preset === 'playful' || preset === 'mystery') {
+      let text = PRESETS[preset].text[lang]
+      if (useFooter && footerText.trim()) text = `${text}${'\n'.repeat(gapLines + 1)}${footerText}`
+      setCaption(text)
+      return
+    }
     if (balance < 0.025) {
       window.dispatchEvent(new CustomEvent('balance:insufficient'))
       return
@@ -200,7 +238,6 @@ export default function AutoPostCaptions() {
         window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
         setLoading(false); return
       }
-      // fallback to local template if API unavailable
       let text = preset === 'custom'
         ? `${customText}\n\n[Добавь ключ XAI_API_KEY для AI генерации]`
         : HOT_TEXT[lang]
@@ -355,24 +392,52 @@ export default function AutoPostCaptions() {
         {/* Unified prompt panel */}
         <div>
           <SL>{t.mods.promptLabel}</SL>
-          <div className="flex rounded-[12px] bg-[rgba(0,255,170,0.06)] border border-[rgba(0,255,170,0.15)] p-1 mb-3">
-            <button onClick={() => setPreset('hot')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[9px] text-[12px] font-black transition-all ${preset === 'hot' ? 'bg-[#00ffaa] text-black shadow-[0_0_10px_rgba(0,255,170,0.3)]' : 'text-[rgba(255,255,255,0.45)] hover:text-white'}`}>
-              <IconFlame size={13} color={preset === 'hot' ? 'black' : 'rgba(255,160,50,0.8)'} /> {t.mods.presetHot}
-            </button>
-            <button onClick={() => setPreset('custom')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[9px] text-[12px] font-black transition-all ${preset === 'custom' ? 'bg-[#00ffaa] text-black shadow-[0_0_10px_rgba(0,255,170,0.3)]' : 'text-[rgba(255,255,255,0.45)] hover:text-white'}`}>
-              <IconEdit size={13} color={preset === 'custom' ? 'black' : 'rgba(255,255,255,0.5)'} /> {t.mods.presetCustom}
-            </button>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {([
+              { id: 'hot'      as Preset, label: 'Горячее',    emoji: '🔥', color: '#ff8c42' },
+              { id: 'romantic' as Preset, label: 'Романтичное', emoji: '💕', color: '#ff6b9d' },
+              { id: 'playful'  as Preset, label: 'Игривое',    emoji: '😏', color: '#a78bfa' },
+              { id: 'mystery'  as Preset, label: 'Загадочное', emoji: '✨', color: '#ffd96b' },
+            ] as const).map(p => {
+              const active = preset === p.id
+              return (
+                <button key={p.id} onClick={() => setPreset(p.id)}
+                  className="flex items-center gap-2 px-3.5 py-3 rounded-[13px] border transition-all active:scale-[0.97] text-left"
+                  style={{
+                    background: active ? `${p.color}15` : 'rgba(255,255,255,0.03)',
+                    borderColor: active ? `${p.color}55` : 'rgba(255,255,255,0.08)',
+                    boxShadow: active ? `0 0 16px ${p.color}18` : 'none',
+                  }}>
+                  <span className="text-[18px] leading-none">{p.emoji}</span>
+                  <span className="text-[12px] font-black" style={{ color: active ? p.color : 'rgba(255,255,255,0.55)' }}>{p.label}</span>
+                </button>
+              )
+            })}
           </div>
+          <button onClick={() => setPreset('custom')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[12px] border transition-all active:scale-[0.97] mb-3"
+            style={{
+              background: preset === 'custom' ? 'rgba(0,255,170,0.1)' : 'rgba(255,255,255,0.02)',
+              borderColor: preset === 'custom' ? 'rgba(0,255,170,0.45)' : 'rgba(255,255,255,0.08)',
+            }}>
+            <IconEdit size={13} color={preset === 'custom' ? '#00ffaa' : 'rgba(255,255,255,0.4)'} />
+            <span className="text-[12px] font-black" style={{ color: preset === 'custom' ? '#00ffaa' : 'rgba(255,255,255,0.4)' }}>{t.mods.presetCustom}</span>
+          </button>
 
-          {preset === 'hot' && (
-            <div className="p-4 bg-[rgba(255,255,255,0.02)] border border-[rgba(0,255,170,0.18)] rounded-[12px]">
+          {(preset === 'hot') && (
+            <div className="p-4 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,140,66,0.18)] rounded-[12px]">
               <div className="flex items-center gap-2 mb-1.5">
-                <IconFlame size={15} color="#00ffaa" />
-                <p className="text-[13px] font-bold text-[#00ffaa]">{t.mods.hotDescLabel}</p>
+                <IconFlame size={15} color="#ff8c42" />
+                <p className="text-[13px] font-bold text-[#ff8c42]">{t.mods.hotDescLabel}</p>
               </div>
               <p className="text-[11px] text-[rgba(255,255,255,0.3)] leading-relaxed">{HOT_TEXT[lang].slice(0, 80)}…</p>
+            </div>
+          )}
+          {(preset === 'romantic' || preset === 'playful' || preset === 'mystery') && (
+            <div className="p-4 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] rounded-[12px]">
+              <p className="text-[11px] text-[rgba(255,255,255,0.35)] leading-relaxed italic">
+                "{PRESETS[preset].text[lang]}"
+              </p>
             </div>
           )}
 
@@ -400,8 +465,8 @@ export default function AutoPostCaptions() {
           )}
         </div>
 
-        {/* Language — only for готовый */}
-        {preset === 'hot' && (
+        {/* Language */}
+        {preset !== 'custom' && (
           <div>
             <SL>Язык</SL>
             <div className="flex gap-2">
@@ -551,7 +616,7 @@ export default function AutoPostCaptions() {
           <>
             <Button fullWidth
               onClick={bulkPhotos.length > 0 ? generateBulk : generate}
-              disabled={(bulkPhotos.length > 0 ? false : loading) || (preset === 'custom' && !customText.trim())}>
+              disabled={(bulkPhotos.length > 0 ? false : loading) || (preset === 'custom' && !customText.trim()) || (preset === 'hot' && balance < 0.025)}>
               {loading && bulkPhotos.length === 0
                 ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />{t.mods.generatingLabel}</span>
                 : bulkPhotos.length > 0

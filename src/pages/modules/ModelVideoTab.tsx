@@ -52,6 +52,7 @@ export default function ModelVideoTab({ model, gallery }: Props) {
   const [refImageUrl, setRefImageUrl] = useState<string | null>(refImages[0]?.url ?? null)
   const [motionVideoFile, setMotionVideoFile] = useState<File | null>(null)
   const [genMode, setGenMode] = useState<'720p' | '1080p'>('720p')
+  const [klingModel, setKlingModel] = useState<'2.6' | '3.0'>('2.6')
   const [orientation, setOrientation] = useState<'image' | 'video'>('image')
   const [prompt, setPrompt] = useState('')
   const [status, setStatus] = useState<GenStatus>('idle')
@@ -111,9 +112,14 @@ export default function ModelVideoTab({ model, gallery }: Props) {
     e.target.value = ''
   }
 
+  const KLING_PRICES: Record<string, Record<string, number>> = {
+    '2.6': { '720p': 0.09, '1080p': 0.12 },
+    '3.0': { '720p': 0.15, '1080p': 0.20 },
+  }
+
   const generate = async () => {
     if (!refImageUrl || !motionVideoFile) return
-    const videoCost = genMode === '1080p' ? 0.12 : 0.09
+    const videoCost = (KLING_PRICES[klingModel] ?? KLING_PRICES['2.6'])[genMode] ?? 0.09
     if (balance < videoCost) {
       window.dispatchEvent(new CustomEvent('balance:insufficient'))
       return
@@ -129,6 +135,7 @@ export default function ModelVideoTab({ model, gallery }: Props) {
         inputImageUrl: refImageUrl,
         motionVideoUrl: motionUrl,
         mode: genMode,
+        klingModel,
         characterOrientation: orientation,
         prompt: prompt.trim() || undefined,
         // No botId — app-generated jobs don't trigger Telegram notifications
@@ -223,6 +230,34 @@ export default function ModelVideoTab({ model, gallery }: Props) {
         )}
       </div>
 
+      {/* Kling model selector */}
+      <div className="px-5">
+        <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)] mb-2">Модель</p>
+        <div className="flex gap-2">
+          {([
+            { id: '2.6' as const, name: 'Kling 2.6', desc: 'Стабильная · проверенная', color: '#00ffaa' },
+            { id: '3.0' as const, name: 'Kling 3.0', desc: 'Новая · лучший результат', color: '#a78bfa' },
+          ]).map(k => {
+            const active = klingModel === k.id
+            const cost = KLING_PRICES[k.id][genMode]
+            return (
+              <button key={k.id} onClick={() => !isRunning && setKlingModel(k.id)}
+                className="flex-1 flex flex-col gap-1 p-3 rounded-[14px] border transition-all active:scale-[0.97] text-left"
+                style={{
+                  background: active ? `${k.color}12` : 'rgba(255,255,255,0.02)',
+                  borderColor: active ? `${k.color}45` : 'rgba(255,255,255,0.07)',
+                }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-black" style={{ color: active ? k.color : 'rgba(255,255,255,0.7)' }}>{k.name}</span>
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: active ? `${k.color}20` : 'rgba(255,255,255,0.06)', color: active ? k.color : 'rgba(255,255,255,0.3)' }}>${cost}</span>
+                </div>
+                <p className="text-[10px] leading-tight" style={{ color: 'rgba(255,255,255,0.28)' }}>{k.desc}</p>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Mode + orientation */}
       <div className="px-5 flex gap-3">
         <div className="flex-1">
@@ -236,7 +271,9 @@ export default function ModelVideoTab({ model, gallery }: Props) {
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-[rgba(255,255,255,0.22)] mt-1">720p $0.09 · 1080p $0.12</p>
+          <p className="text-[10px] text-[rgba(255,255,255,0.22)] mt-1">
+            720p ${KLING_PRICES[klingModel]['720p']} · 1080p ${KLING_PRICES[klingModel]['1080p']}
+          </p>
         </div>
         <div className="flex-1">
           <p className="text-[10px] font-black uppercase tracking-[2px] text-[rgba(255,255,255,0.38)] mb-1.5">{t.mods.orientationLabel}</p>
@@ -299,7 +336,7 @@ export default function ModelVideoTab({ model, gallery }: Props) {
           {status === 'uploading' ? t.mods.uploadingVideoLabel : status === 'generating' ? t.mods.startingGenLabel : t.mods.createVideoBtn}
         </Button>
         <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">
-          генерация {genMode === '1080p' ? '$0.12' : '$0.09'}
+          генерация ${(KLING_PRICES[klingModel] ?? KLING_PRICES['2.6'])[genMode]}
         </p>
       </div>
 
