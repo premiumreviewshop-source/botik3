@@ -8,6 +8,11 @@ export const en = {
     modAutopost: 'Auto-Posting', modAutopostSub: 'Hands-free channel · $19.90/month',
     modAnalytics: 'Analytics', modAnalyticsSub: 'Track revenue and audience growth',
   },
+  lowBalance: {
+    title: 'Insufficient Balance',
+    desc: 'Top up your balance to continue using services.',
+    cta: 'Top Up Balance',
+  },
   balance: {
     section: 'Finance', title: 'Balance', current: 'Current balance',
     topup: 'Top up', customAmt: 'Custom amount ($)',

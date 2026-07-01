@@ -22,6 +22,7 @@ import AutoPostAnalytics from './pages/modules/AutoPostAnalytics'
 import Analytics from './pages/modules/Analytics'
 import Admin from './pages/Admin'
 import PlatformOverlay from './components/PlatformOverlay'
+import InsufficientBalanceModal from './components/InsufficientBalanceModal'
 
 function PageRouter() {
   const { page, dir } = useApp()
@@ -70,6 +71,7 @@ export default function App() {
     <LangProvider>
       <AppProvider>
         <PlatformOverlay />
+        <InsufficientBalanceModal />
         <PageRouter />
         <div className="page-top-fade" />
         <div className="page-bottom-fade" />

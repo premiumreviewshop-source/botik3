@@ -189,8 +189,11 @@ export default function ModelCaptionsTab({ model }: { model: AIModel }) {
       setCaption(r.caption)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('Недостаточно') || msg.includes('insufficient')) setError(msg)
-      else setCaption(preset === 'custom' ? (customText || HOT_TEXT[lang]) : HOT_TEXT[lang])
+      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+        window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
+      } else {
+        setCaption(preset === 'custom' ? (customText || HOT_TEXT[lang]) : HOT_TEXT[lang])
+      }
     } finally { setLoading(false) }
   }
 
@@ -204,7 +207,10 @@ export default function ModelCaptionsTab({ model }: { model: AIModel }) {
         captionText = combineWithFooter(r.caption)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        if (msg.includes('Недостаточно') || msg.includes('insufficient')) { setError(msg); setBulkGenerating(false); setBulkProgress(0); return }
+        if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+          window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
+          setBulkGenerating(false); setBulkProgress(0); return
+        }
         captionText = combineWithFooter(preset === 'custom' ? (customText || HOT_TEXT[lang]) : HOT_TEXT[lang])
       }
       newPosts.push({ id: `${Date.now()}_${i}`, url: bulkPhotos[i], caption: captionText, createdAt: new Date().toLocaleDateString('ru') })

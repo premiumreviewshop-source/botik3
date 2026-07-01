@@ -10,6 +10,11 @@ export const ru: Translations = {
     modAutopost: 'Автопостинг', modAutopostSub: 'Канал на автопилоте · $19.90/мес',
     modAnalytics: 'Аналитика', modAnalyticsSub: 'Отслеживай доход и рост аудитории',
   },
+  lowBalance: {
+    title: 'Недостаточный баланс',
+    desc: 'Пополните баланс чтобы продолжить работу.',
+    cta: 'Пополнить баланс',
+  },
   balance: {
     section: 'Финансы', title: 'Баланс', current: 'Текущий баланс',
     topup: 'Пополнить', customAmt: 'Своя сумма ($)',

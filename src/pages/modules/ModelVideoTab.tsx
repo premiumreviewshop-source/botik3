@@ -136,8 +136,14 @@ export default function ModelVideoTab({ model, gallery }: Props) {
       setStatus('idle')
       setMotionVideoFile(null)
     } catch (err) {
-      setErrorMsg(String(err))
-      setStatus('error')
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+        window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
+        setStatus('idle')
+      } else {
+        setErrorMsg(msg)
+        setStatus('error')
+      }
     }
   }
 

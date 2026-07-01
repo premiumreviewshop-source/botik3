@@ -139,7 +139,12 @@ export default function AutoPostCaptions() {
           imageUrl: photoUrl,
         })
         captionText = result.caption
-      } catch {
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+          window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
+          setBulkGenerating(false); setBulkProgress(0); return
+        }
         captionText = preset === 'custom'
           ? (customText || HOT_TEXT[lang])
           : HOT_TEXT[lang]
@@ -181,7 +186,12 @@ export default function AutoPostCaptions() {
         imageUrl: photoUrl,
       })
       setCaption(result.caption)
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+        window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
+        setLoading(false); return
+      }
       // fallback to local template if API unavailable
       let text = preset === 'custom'
         ? `${customText}\n\n[Добавь ключ XAI_API_KEY для AI генерации]`

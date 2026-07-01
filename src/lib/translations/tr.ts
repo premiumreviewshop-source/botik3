@@ -10,6 +10,11 @@ export const tr: Translations = {
     modAutopost: 'Otomatik Gönderi', modAutopostSub: 'Otopilot kanal · $19.90/ay',
     modAnalytics: 'Analitik', modAnalyticsSub: 'Gelir ve kitle büyümesini takip et',
   },
+  lowBalance: {
+    title: 'Yetersiz Bakiye',
+    desc: 'Hizmetleri kullanmaya devam etmek için bakiye yükleyin.',
+    cta: 'Bakiye Yükle',
+  },
   balance: {
     section: 'Finans', title: 'Bakiye', current: 'Mevcut bakiye',
     topup: 'Yükle', customAmt: 'Özel miktar ($)',
