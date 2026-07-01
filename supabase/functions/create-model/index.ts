@@ -1,6 +1,6 @@
 import { corsHeaders } from '../_shared/cors.ts'
 import { db } from '../_shared/db.ts'
-import { checkAndDeduct } from '../_shared/balance.ts'
+import { checkAndDeduct, refundBalance } from '../_shared/balance.ts'
 import { verifyAuth } from '../_shared/auth.ts'
 
 const CREATION_COST = 0.075
@@ -67,6 +67,7 @@ Deno.serve(async (req: Request) => {
 
     if (!wsResp.ok) {
       await db.from('ai_models').update({ status: 'failed' }).eq('id', model.id)
+      await refundBalance(tgUserId, CREATION_COST, 'Возврат: ошибка создания AI-модели')
       return respond({ error: 'AI service error' }, 502)
     }
 
@@ -75,6 +76,7 @@ Deno.serve(async (req: Request) => {
       wsData = JSON.parse(wsText)
     } catch {
       await db.from('ai_models').update({ status: 'failed' }).eq('id', model.id)
+      await refundBalance(tgUserId, CREATION_COST, 'Возврат: ошибка создания AI-модели')
       return respond({ error: 'AI service returned invalid response' }, 502)
     }
 
@@ -92,6 +94,10 @@ Deno.serve(async (req: Request) => {
       status: isReady ? 'ready' : wsFailed ? 'failed' : 'processing',
       updated_at: new Date().toISOString(),
     }).eq('id', model.id)
+
+    if (wsFailed) {
+      await refundBalance(tgUserId, CREATION_COST, 'Возврат: ошибка создания AI-модели')
+    }
 
     return respond({ id: model.id, name: model.name, status: isReady ? 'ready' : 'processing', triggerWord, jobId, resultUrl })
   } catch {

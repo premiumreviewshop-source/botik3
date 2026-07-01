@@ -40,7 +40,7 @@ interface Props {
 }
 
 export default function ModelVideoTab({ model, gallery }: Props) {
-  const { bots, selectedBotId } = useApp()
+  const { bots, selectedBotId, balance } = useApp()
   const { t } = useLang()
 
   const modelGallery = gallery.filter(g => g.modelId === model.id)
@@ -113,6 +113,11 @@ export default function ModelVideoTab({ model, gallery }: Props) {
 
   const generate = async () => {
     if (!refImageUrl || !motionVideoFile) return
+    const videoCost = genMode === '1080p' ? 0.12 : 0.09
+    if (balance < videoCost) {
+      window.dispatchEvent(new CustomEvent('balance:insufficient'))
+      return
+    }
     setStatus('uploading')
     setErrorMsg(null)
     try {

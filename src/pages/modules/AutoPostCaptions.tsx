@@ -40,7 +40,7 @@ function SL({ children }: { children: string }) {
 }
 
 export default function AutoPostCaptions() {
-  const { goBack, gallery, uploads, setUploads, readyPosts, setReadyPosts, savedPrompts, setSavedPrompts, savedFooters, setSavedFooters, savedEmojis } = useApp()
+  const { goBack, gallery, uploads, setUploads, readyPosts, setReadyPosts, savedPrompts, setSavedPrompts, savedFooters, setSavedFooters, savedEmojis, balance } = useApp()
   const { t } = useLang()
 
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
@@ -123,6 +123,10 @@ export default function AutoPostCaptions() {
 
   const generateBulk = async () => {
     if (bulkPhotos.length === 0) return
+    if (balance < 0.025) {
+      window.dispatchEvent(new CustomEvent('balance:insufficient'))
+      return
+    }
     setBulkGenerating(true)
     setBulkProgress(0)
     const newPosts: typeof readyPosts = []
@@ -174,6 +178,10 @@ export default function AutoPostCaptions() {
   }
 
   const generate = async () => {
+    if (balance < 0.025) {
+      window.dispatchEvent(new CustomEvent('balance:insufficient'))
+      return
+    }
     setLoading(true)
     const photoUrl = isPackMode ? packPhotos[0] : selectedPhoto ?? undefined
     try {

@@ -14,6 +14,7 @@ export const tr: Translations = {
     title: 'Yetersiz Bakiye',
     desc: 'Hizmetleri kullanmaya devam etmek için bakiye yükleyin.',
     cta: 'Bakiye Yükle',
+    cancel: 'Kapat',
   },
   balance: {
     section: 'Finans', title: 'Bakiye', current: 'Mevcut bakiye',

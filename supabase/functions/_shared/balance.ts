@@ -36,3 +36,16 @@ export async function checkAndDeduct(
   })
   return null
 }
+
+export async function refundBalance(tgUserId: string, amount: number, description: string): Promise<void> {
+  const now = new Date()
+  const dateStr = `${now.getDate().toString().padStart(2,'0')}.${(now.getMonth()+1).toString().padStart(2,'0')}.${now.getFullYear()}`
+  await db.from('transactions').insert({
+    tg_user_id: tgUserId,
+    type: 'topup',
+    amount,
+    description,
+    date: dateStr,
+    created_at: now.toISOString(),
+  })
+}

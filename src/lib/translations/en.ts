@@ -12,6 +12,7 @@ export const en = {
     title: 'Insufficient Balance',
     desc: 'Top up your balance to continue using services.',
     cta: 'Top Up Balance',
+    cancel: 'Close',
   },
   balance: {
     section: 'Finance', title: 'Balance', current: 'Current balance',

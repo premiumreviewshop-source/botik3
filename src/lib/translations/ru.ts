@@ -14,6 +14,7 @@ export const ru: Translations = {
     title: 'Недостаточный баланс',
     desc: 'Пополните баланс чтобы продолжить работу.',
     cta: 'Пополнить баланс',
+    cancel: 'Закрыть',
   },
   balance: {
     section: 'Финансы', title: 'Баланс', current: 'Текущий баланс',

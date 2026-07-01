@@ -93,7 +93,7 @@ function EditPostSheet({ post, onSave, onClose }: {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ModelCaptionsTab({ model }: { model: AIModel }) {
-  const { gallery, uploads, setUploads, readyPosts, setReadyPosts, savedEmojis, savedFooters, navigate } = useApp()
+  const { gallery, uploads, setUploads, readyPosts, setReadyPosts, savedEmojis, savedFooters, navigate, balance } = useApp()
 
   // Single-photo mode
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
@@ -183,6 +183,10 @@ export default function ModelCaptionsTab({ model }: { model: AIModel }) {
     useFooter && footerText.trim() ? `${cap}${'\n'.repeat(gapLines + 1)}${footerText}` : cap
 
   const generate = async () => {
+    if (balance < 0.025) {
+      window.dispatchEvent(new CustomEvent('balance:insufficient'))
+      return
+    }
     setLoading(true); setError(null)
     try {
       const r = await api.captions.generate({ prompt: customText, lang, type: preset, imageUrl: isPackMode ? bulkPhotos[0] : (selectedPhoto ?? undefined) })
@@ -198,6 +202,10 @@ export default function ModelCaptionsTab({ model }: { model: AIModel }) {
   }
 
   const generateBulk = async () => {
+    if (balance < 0.025) {
+      window.dispatchEvent(new CustomEvent('balance:insufficient'))
+      return
+    }
     setBulkGenerating(true); setBulkProgress(0); setError(null)
     const newPosts: ReadyPost[] = []
     for (let i = 0; i < bulkPhotos.length; i++) {

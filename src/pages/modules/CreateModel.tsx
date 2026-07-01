@@ -42,7 +42,7 @@ type Step = 1 | 2 | 3
 type GenStatus = 'idle' | 'processing' | 'done'
 
 export default function CreateModel() {
-  const { goBack, navigate, setModels, models } = useApp()
+  const { goBack, navigate, setModels, models, balance } = useApp()
   const { t, lang } = useLang()
 
   const [mode, setMode] = useState<Mode>(null)
@@ -87,6 +87,10 @@ export default function CreateModel() {
   }
 
   const generate = async () => {
+    if (balance < 0.075) {
+      window.dispatchEvent(new CustomEvent('balance:insufficient'))
+      return
+    }
     setGenStatus('processing')
     setGenProgress(0)
     setGenError(null)

@@ -28,82 +28,72 @@ export default function InsufficientBalanceModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)' }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center px-5"
+      style={{ background: 'rgba(0,0,0,0.85)' }}
       onClick={close}
     >
       <div
-        className="mx-5 rounded-[24px] overflow-hidden"
+        className="w-full rounded-[18px]"
         style={{
-          background: 'linear-gradient(145deg, #071510 0%, #0b2018 60%, #071510 100%)',
-          border: '1px solid rgba(0,255,170,0.22)',
-          boxShadow: '0 0 60px rgba(0,255,170,0.08), 0 24px 80px rgba(0,0,0,0.6)',
-          width: '100%',
-          maxWidth: 340,
+          background: '#111',
+          border: '1px solid rgba(255,255,255,0.08)',
+          maxWidth: 320,
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Icon */}
-        <div className="flex justify-center pt-8 pb-4">
+        {/* Top section */}
+        <div className="px-6 pt-7 pb-5">
+          {/* Icon */}
           <div
-            className="w-16 h-16 rounded-[20px] flex items-center justify-center"
-            style={{
-              background: 'rgba(0,255,170,0.08)',
-              border: '1px solid rgba(0,255,170,0.2)',
-            }}
+            className="w-11 h-11 rounded-[12px] flex items-center justify-center mb-5"
+            style={{ background: 'rgba(255,255,255,0.05)' }}
           >
-            <span style={{ fontSize: 30 }}>💳</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="3"/>
+              <line x1="2" y1="10" x2="22" y2="10"/>
+              <line x1="7" y1="15" x2="9" y2="15"/>
+            </svg>
           </div>
-        </div>
 
-        {/* Text */}
-        <div className="px-6 pb-2 text-center">
-          <h2
-            className="text-[19px] font-black leading-tight mb-2"
-            style={{ color: '#fff' }}
-          >
+          <h2 className="text-[17px] font-bold text-white mb-1.5">
             {t.lowBalance.title}
           </h2>
-          <p
-            className="text-[13px] leading-[1.6]"
-            style={{ color: 'rgba(255,255,255,0.45)' }}
-          >
+          <p className="text-[13px] leading-[1.55]" style={{ color: 'rgba(255,255,255,0.4)' }}>
             {t.lowBalance.desc}
           </p>
           {detail && (
-            <p
-              className="text-[11px] mt-2 font-mono"
-              style={{ color: 'rgba(0,255,170,0.45)' }}
-            >
+            <p className="text-[11px] mt-3 leading-[1.5]" style={{ color: 'rgba(255,255,255,0.25)' }}>
               {detail}
             </p>
           )}
         </div>
 
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
         {/* Buttons */}
-        <div className="px-6 pt-4 pb-7 flex flex-col gap-2.5">
+        <div className="px-4 py-4 flex flex-col gap-2">
           <button
             onClick={goTopUp}
-            className="w-full py-3.5 rounded-[14px] text-[14px] font-black tracking-wide transition-all active:scale-[0.97]"
+            className="w-full py-3 rounded-[12px] text-[14px] font-semibold transition-all active:scale-[0.98]"
             style={{
-              background: 'linear-gradient(135deg, rgba(0,255,170,0.18) 0%, rgba(0,200,130,0.12) 100%)',
-              border: '1px solid rgba(0,255,170,0.35)',
+              background: 'transparent',
+              border: '1px solid rgba(0,255,170,0.4)',
               color: '#00ffaa',
-              boxShadow: '0 0 20px rgba(0,255,170,0.08)',
             }}
           >
             {t.lowBalance.cta}
           </button>
           <button
             onClick={close}
-            className="w-full py-3 rounded-[14px] text-[13px] font-semibold transition-all active:scale-[0.97]"
+            className="w-full py-2.5 rounded-[12px] text-[13px] transition-all active:scale-[0.98]"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              color: 'rgba(255,255,255,0.35)',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              color: 'rgba(255,255,255,0.3)',
             }}
           >
-            ✕
+            {t.lowBalance.cancel}
           </button>
         </div>
       </div>
