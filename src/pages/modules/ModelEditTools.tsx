@@ -607,18 +607,6 @@ const SCENE_TRANSFER_SYSTEM = `Ты — профессиональный Prompt 
 
 Выводи только готовый финальный промт — без объяснений, без анализа, без лишнего текста. Просто чистый текст, который я смогу скопировать и использовать`
 
-const POSE_GENERATOR_SYSTEM = `Ты — эксперт по позированию моделей, композиции и работе с референсами. Тебе дана фотография девушки. Твоя задача — не генерировать изображение с нуля, а создать максимально точный и эффективный промт для модели Seedream v4.5 edit, который позволит изменить позу девушки на этой фотографии. Этапы работы:
-1. Глубокий анализ референса
-Внимательно проанализируй: • Ракурс камеры и угол съёмки • Композицию кадра • Положение тела, рук, ног и головы на оригинальном фото • Освещение, направление взгляда, выражение лица • Одежду, фон и общее настроение
-2. Создание новой позы
-На основе анализа придумай одну новую, кардинально отличающуюся позу, которая: • Полностью соответствует тому же ракурсу, композиции и кадрированию фотографии • Идеально подходит именно этой девушке (фигура, пропорции, стиль) • Выглядит естественно и органично в данном ракурсе • Является флиртующей, сексуально-привлекательной и выразительной • Чётко передаёт понятный смысл и настроение позы (не должна быть однотипной или скучной) • Раскрывает фигуру модели с выгодной стороны максимально открыто и выгодно • Использует разные, интересные, сексуальные и флиртующие позы, которые показывают модель как можно лучше и откровеннее, с открытыми ракурсами тела с разных сторон (повороты корпуса, изгибы, выгодные углы бёдер, талии, груди, ног и силуэта)
-Поза должна быть заметно другой по сравнению с оригиналом (кардинальное изменение положения тела, рук, ног, изгиба корпуса, наклона головы и т.д.), но при этом оставаться 100% гармоничной для этого конкретного ракурса и композиции.
-3. Формирование промта
-Составь детальный, чёткий и оптимизированный промт специально для Seedream v4.5 edit, который позволит модели: • Сохранить лицо девушки, её внешность, освещение, ракурс, фон и одежду максимально близко к оригиналу • Полностью изменить позу на новую, которую ты придумал • Сделать результат естественным и высококачественным Промт должен содержать конкретные указания по: • Положению корпуса, бёдер, плеч • Размещению и изгибу рук и ног • Наклону и повороту головы • Направлению взгляда • Напряжению мышц и изгибам тела • Общему настроению (флирт, уверенность, игривость и т.д.) Важно: Поза должна быть живой, естественной и идеально вписываться в существующий кадр. Избегай шаблонных поз. Каждая новая поза должна ощущаться свежей и интересной.
-
-отправляй исключительно промт без прелюдий`
-
-const CAROUSEL_FACESWAP_PROMPT = `Replace the woman in the second reference image with the woman from the first reference image. The first image is the identity reference and must be strictly preserved: keep her face, body shape, exact proportions, and silhouette unchanged. Do not modify anatomy, do not stretch or resize body parts. Use the outfit from the second reference image. The clothing, styling, and fit must match the second image exactly. Transfer the woman from the first image into the pose of the second image, matching body position precisely while keeping original proportions. The second image defines the environment: keep the same background, camera angle, framing, perspective, and composition. Match the lighting from the second image exactly: same light direction, intensity, shadows, highlights, and color grading. Match the image quality of the second photo: same resolution, sharpness, noise level, skin detail, lens characteristics, and overall realism. Do not enhance or degrade quality — replicate it exactly. Ensure seamless blending into the scene with correct depth and perspective. No stylization, no reinterpretation, no body reshaping. Photorealistic, natural result good quality, delete tattoo on hand, no text`
 
 async function callGrokForSceneTransfer(modelUrl: string, refUrl: string): Promise<string> {
   const key = import.meta.env.VITE_XAI_API_KEY
@@ -643,40 +631,6 @@ async function callGrokForSceneTransfer(modelUrl: string, refUrl: string): Promi
   return text
 }
 
-async function submitNanoBananaWithRef(modelUrl: string, refUrl: string, prompt: string): Promise<string> {
-  return wavespeedSubmit('google/nano-banana-pro/edit', [modelUrl, refUrl], prompt)
-}
-
-async function callGrokForPoses(imageUrl: string, count: number): Promise<string[]> {
-  const key = import.meta.env.VITE_XAI_API_KEY
-  if (!key) throw new Error('VITE_XAI_API_KEY не настроен')
-  const suffix = `\n\nСоздай РОВНО ${count} РАЗНЫХ промтов, каждый для уникальной позы. Разделяй промты строго через ---SPLIT---. Никаких нумераций, никакого вводного текста — только промты.`
-  const resp = await fetch('https://api.x.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'grok-4.3',
-      messages: [{ role: 'user', content: [
-        { type: 'text', text: POSE_GENERATOR_SYSTEM + suffix },
-        { type: 'image_url', image_url: { url: imageUrl } },
-      ]}],
-      max_tokens: 3000,
-    }),
-  })
-  if (!resp.ok) { const b = await resp.text(); throw new Error(`Grok poses ${resp.status}: ${b.slice(0, 200)}`) }
-  const data = await resp.json()
-  const text: string = data.choices?.[0]?.message?.content ?? ''
-  if (!text) throw new Error('Grok вернул пустой ответ')
-  const parts = text.split('---SPLIT---').map((s: string) => s.trim()).filter(Boolean)
-  if (parts.length === 0) throw new Error('Grok не вернул промты')
-  while (parts.length < count) parts.push(parts[parts.length - 1])
-  return parts.slice(0, count)
-}
-
-async function submitSeedreamEdit(imageUrl: string, prompt: string): Promise<string> {
-  return wavespeedSubmit('bytedance/seedream-v4.5/edit', [imageUrl], prompt)
-}
-
 export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
   const [modelPhoto, setModelPhoto] = useState<PhotoValue>(null)
   const [refPhoto, setRefPhoto] = useState<PhotoValue>(null)
@@ -685,7 +639,6 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
   const [running, setRunning] = useState(false)
   const [stage, setStage] = useState('')
   const [err, setErr] = useState('')
-  const doneRef = useRef(0)
 
   const run = async () => {
     if (!modelPhoto || !refPhoto || running || count < 1) return
