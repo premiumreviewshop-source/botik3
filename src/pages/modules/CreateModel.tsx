@@ -125,7 +125,12 @@ export default function CreateModel() {
       }
       throw new Error('Timeout exceeded')
     } catch (err) {
-      setGenError(String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+        window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
+      } else {
+        setGenError(msg)
+      }
       setGenStatus('idle')
       setGenProgress(0)
     }
@@ -174,7 +179,12 @@ export default function CreateModel() {
       setModels([...models, { id: result.id, name, status: 'ready', previewUrl: imageUrl, createdAt: new Date().toLocaleDateString('ru') }])
       setOwnDone(true)
     } catch (err) {
-      setOwnError(String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('Недостаточно') || msg.includes('insufficient')) {
+        window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: msg }))
+      } else {
+        setOwnError(msg)
+      }
     }
   }
 
