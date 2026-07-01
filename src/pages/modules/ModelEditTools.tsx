@@ -6,7 +6,7 @@ import api, { BalanceError } from '../../api/client'
 import type { AIModel, GeneratedPhoto } from '../../types'
 import { supabaseUrl, supabaseKey } from '../../lib/supabase'
 
-export type ToolType = 'faceswap' | 'nude' | 'faceswap_nude' | 'expression' | 'outfit' | 'changePose' | 'pose' | 'create' | 'carousel'
+export type ToolType = 'faceswap' | 'outfit' | 'pose' | 'create' | 'carousel'
 type PhotoValue = File | string | null
 
 const SAFE_MIME: Record<string, string> = {
@@ -52,27 +52,6 @@ function ToolIcon({ id, color, size = 16 }: { id: ToolType; color: string; size?
       <path d="M19.5 15c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5" {...s} strokeOpacity={0.4} />
     </svg>
   )
-  if (id === 'nude') return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path d="M12 3C9 3 7 5.5 7 8c0 2 1 3.5 2.5 4.5L8 21h8l-1.5-8.5C16 11.5 17 10 17 8c0-2.5-2-5-5-5z" {...s} />
-      <path d="M9.5 8.5c.5-.5 1.5-.8 2.5-.8s2 .3 2.5.8" {...s} strokeOpacity={0.5} />
-    </svg>
-  )
-  if (id === 'faceswap_nude') return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="8" cy="8" r="3.5" {...s} />
-      <path d="M5 8c0-1.66 1.34-3 3-3M11.5 8c0 1.66-1.34 3-3 3" {...s} strokeOpacity={0.4} />
-      <path d="M15 10c-1.5 1-2 2.5-2 4l-1 7h7l-1-7c0-1.5-.5-3-2-4" {...s} />
-    </svg>
-  )
-  if (id === 'expression') return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="8.5" {...s} />
-      <path d="M9 14.5c.8 1.2 2 1.8 3 1.8s2.2-.6 3-1.8" {...s} />
-      <circle cx="9.5" cy="10.5" r="1" fill={color} stroke="none" />
-      <circle cx="14.5" cy="10.5" r="1" fill={color} stroke="none" />
-    </svg>
-  )
   if (id === 'outfit') return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M8.5 3L6 6l-4 2 2.5 2.5L4 20h16l-.5-9.5L22 8l-4-2-2.5-3" {...s} />
@@ -85,15 +64,6 @@ function ToolIcon({ id, color, size = 16 }: { id: ToolType; color: string; size?
       <path d="M3 17l5-5 4 3 3.5-4.5L21 17" {...s} strokeOpacity={0.45} />
       <path d="M8 21h8M12 17v4" {...s} />
       <path d="M13.5 8l2.5 2.5-5.5 5.5-3 .5.5-3L13.5 8z" {...s} />
-    </svg>
-  )
-  if (id === 'changePose') return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="5" r="2.5" {...s} />
-      <path d="M8 9.5c0 0 1 1.5 4 1.5s4-1.5 4-1.5" {...s} strokeOpacity={0.5} />
-      <path d="M12 11v4M10 15l-2 4M14 15l2 4" {...s} />
-      <path d="M9 13.5l-3 1M15 13.5l3 1" {...s} strokeOpacity={0.6} />
-      <path d="M4 18l2-1M18 17l2 1" {...s} strokeOpacity={0.35} strokeDasharray="2 1.5" />
     </svg>
   )
   if (id === 'carousel') return (
@@ -118,30 +88,18 @@ export const TOOLS: { id: ToolType; label: string; desc: string; longDesc: strin
   { id: 'faceswap',      label: 'FaceSwap',  color: '#00ffaa',
     desc: 'Вставь лицо модели в любое фото',
     longDesc: 'Накладывает лицо твоей модели на любое фото. Естественное освещение и текстура кожи сохраняются — контент без фотосессий.' },
-  { id: 'nude',          label: 'NSFW',      color: '#00d4ff',
-    desc: 'Снятие одежды, детальный реализм',
-    longDesc: 'Нейросеть снимает одежду с фотореалистичным результатом. Анатомическая точность, детальная текстура кожи, естественные тени.' },
-  { id: 'faceswap_nude', label: 'Swap+NSFW', color: '#9d8fff',
-    desc: 'FaceSwap и NSFW одновременно',
-    longDesc: 'Подставь лицо модели и убери одежду за одну генерацию. Экономит время — не нужно делать два отдельных запроса.' },
   { id: 'carousel',      label: 'Карусель',  color: '#ff6b9d', isNew: true,
     desc: 'Несколько поз из одного фото',
     longDesc: 'Из одного фото нейросеть создаёт несколько уникальных поз. Загрузи фото, выбери количество — получи готовую карусель для постов.' },
-  { id: 'expression',    label: 'Выражение', color: '#ff9d5c', isNew: true,
-    desc: 'Смени выражение лица',
-    longDesc: 'Меняет выражение лица по фото-референсу или описанию. Улыбка, взгляд, эмоция — точная передача без изменения внешности.' },
   { id: 'outfit',        label: 'Одежда',    color: '#c084fc', isNew: true,
     desc: 'Замени одежду по фото-референсу',
     longDesc: 'Переносит одежду с любого референса на модель. Лицо, тело и поза остаются — меняется только одежда.' },
-  { id: 'changePose',    label: 'Поза',      color: '#ffd96b', isNew: true,
-    desc: 'Смени позу по референсу или тексту',
-    longDesc: 'Нейросеть воспроизводит нужную позу по фото или словесному описанию, сохраняя внешность модели.' },
   { id: 'pose',          label: 'Редактор',  color: '#6bffd9', isNew: true,
     desc: 'Редактируй фото своими промптами',
     longDesc: 'Точное управление через текст: меняй детали, добавляй объекты, изменяй фон. Полный контроль над каждым элементом.' },
-  { id: 'create',        label: 'Создать',   color: '#a78bfa', isNew: true,
-    desc: 'Создавай фото по образцу',
-    longDesc: 'Создаёт новые фото по визуальному референсу. Нейросеть берёт стиль, позу или окружение и применяет к твоей модели.' },
+  { id: 'create',        label: 'Внедрить модель', color: '#a78bfa', isNew: true,
+    desc: 'Внедри модель в любой референс',
+    longDesc: 'Берёт фото модели и референс — внедряет твою модель в сцену референса, сохраняя позу, окружение и стиль.' },
 ]
 
 // ── Tool Selector: active card + bottom sheet picker ──────────────────────────
@@ -353,68 +311,6 @@ function SubModeToggle({ mode, onChange }: { mode: 'ref' | 'text'; onChange: (m:
           </button>
         ))}
       </div>
-    </div>
-  )
-}
-
-// ── Expression Tool ────────────────────────────────────────────────────────────
-
-export function ExpressionTool({ model, onNewGen, gallery }: EditToolProps) {
-  const [subMode, setSubMode] = useState<'ref' | 'text'>('ref')
-  const [modelPhoto, setModelPhoto] = useState<PhotoValue>(null)
-  const [exprPhoto, setExprPhoto] = useState<PhotoValue>(null)
-  const [wishText, setWishText] = useState('')
-  const [running, setRunning] = useState(false)
-  const [err, setErr] = useState('')
-
-  const canRun = !!modelPhoto && (subMode === 'ref' ? !!exprPhoto : wishText.trim().length > 0) && !running
-
-  const run = async () => {
-    if (!canRun) return
-    setRunning(true); setErr('')
-    try {
-      const modelUrl = await resolveUrl(modelPhoto!)
-      if (subMode === 'ref') {
-        const exprUrl = await resolveUrl(exprPhoto!)
-        const job = await api.generate.edit({ type: 'expression', modelId: model.id, imageUrls: [modelUrl, exprUrl], subMode: 'ref' })
-        onNewGen(makePlaceholder(job, model))
-      } else {
-        const job = await api.generate.edit({ type: 'expression', modelId: model.id, imageUrls: [modelUrl], subMode: 'text', userText: wishText.trim() })
-        onNewGen(makePlaceholder(job, model))
-      }
-    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } }
-    finally { setRunning(false) }
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      <SubModeToggle mode={subMode} onChange={m => { setSubMode(m); setExprPhoto(null); setWishText('') }} />
-      {subMode === 'ref' ? (
-        <div className="px-5 grid grid-cols-2 gap-3">
-          <PhotoSlot label="Фото модели" hint="Исходное фото" value={modelPhoto} onValue={setModelPhoto} gallery={gallery} disabled={running} />
-          <PhotoSlot label="Эталон выражения" hint="Нужное выражение" value={exprPhoto} onValue={setExprPhoto} disabled={running} />
-        </div>
-      ) : (
-        <div className="px-5 flex flex-col gap-3">
-          <PhotoSlot label="Фото модели" hint="Исходное фото" value={modelPhoto} onValue={setModelPhoto} gallery={gallery} disabled={running} />
-          <div>
-            <p className="text-[11px] font-bold text-[rgba(255,255,255,0.45)] mb-1.5">Желаемое выражение</p>
-            <textarea value={wishText} onChange={e => setWishText(e.target.value)}
-              placeholder="Опиши желаемое выражение лица..." disabled={running} rows={3}
-              className="w-full rounded-[12px] p-3 text-[13px] text-white placeholder-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] resize-none focus:border-[rgba(0,255,170,0.3)] focus:outline-none transition-colors" />
-          </div>
-        </div>
-      )}
-      <div className="px-5">
-        <Button fullWidth disabled={!canRun} onClick={run}>
-          <IconZap size={16} />{running ? 'Генерация...' : 'Изменить выражение'}
-        </Button>
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">$0.10 за генерацию</p>
-        {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
-      </div>
-      <ToolInfo text={subMode === 'ref'
-        ? 'Загрузи фото модели и фото с нужным выражением. Нейросеть проанализирует и изменит выражение.'
-        : 'Загрузи фото модели и опиши желаемое выражение. Нейросеть создаст результат на основе твоего пожелания.'} />
     </div>
   )
 }
@@ -860,71 +756,6 @@ export function PhotoEditTool({ model, onNewGen, gallery }: EditToolProps) {
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
       <ToolInfo text="Загрузи фото модели и опиши что изменить. Для каждого варианта можно прикрепить референс-фото или выбрать из хранилища. Все варианты генерируются одновременно." />
-    </div>
-  )
-}
-
-// ── Change Pose Tool ───────────────────────────────────────────────────────────
-
-export function PoseTool({ model, onNewGen, gallery }: EditToolProps) {
-  const [subMode, setSubMode] = useState<'ref' | 'text'>('ref')
-  const [modelPhoto, setModelPhoto] = useState<PhotoValue>(null)
-  const [poseRef, setPoseRef] = useState<PhotoValue>(null)
-  const [wishText, setWishText] = useState('')
-  const [running, setRunning] = useState(false)
-  const [stage, setStage] = useState('')
-  const [err, setErr] = useState('')
-
-  const canRun = !!modelPhoto && (subMode === 'ref' ? !!poseRef : wishText.trim().length > 0) && !running
-
-  const run = async () => {
-    if (!canRun) return
-    setRunning(true); setErr(''); setStage('Загрузка...')
-    try {
-      const modelUrl = await resolveUrl(modelPhoto!)
-      setStage('Анализ позы...')
-      if (subMode === 'ref') {
-        const poseUrl = await resolveUrl(poseRef!)
-        const job = await api.generate.edit({ type: 'pose', modelId: model.id, imageUrls: [modelUrl, poseUrl], subMode: 'ref' })
-        onNewGen(makePlaceholder(job, model))
-      } else {
-        const job = await api.generate.edit({ type: 'pose', modelId: model.id, imageUrls: [modelUrl], subMode: 'text', userText: wishText.trim() })
-        onNewGen(makePlaceholder(job, model))
-      }
-      setStage('')
-    } catch (e) { const _m = e instanceof Error ? e.message : String(e); if (e instanceof BalanceError || _m.includes('Недостаточно') || _m.includes('insufficient')) { window.dispatchEvent(new CustomEvent('balance:insufficient', { detail: _m })) } else { setErr(_m) } setStage('') }
-    finally { setRunning(false) }
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      <SubModeToggle mode={subMode} onChange={m => { setSubMode(m); setPoseRef(null); setWishText('') }} />
-      {subMode === 'ref' ? (
-        <div className="px-5 grid grid-cols-2 gap-3">
-          <PhotoSlot label="Фото модели" hint="Исходное фото" value={modelPhoto} onValue={setModelPhoto} gallery={gallery} disabled={running} />
-          <PhotoSlot label="Референс позы" hint="Нужная поза" value={poseRef} onValue={setPoseRef} disabled={running} />
-        </div>
-      ) : (
-        <div className="px-5 flex flex-col gap-3">
-          <PhotoSlot label="Фото модели" hint="Исходное фото" value={modelPhoto} onValue={setModelPhoto} gallery={gallery} disabled={running} />
-          <div>
-            <p className="text-[11px] font-bold text-[rgba(255,255,255,0.45)] mb-1.5">Желаемая поза</p>
-            <textarea value={wishText} onChange={e => setWishText(e.target.value)}
-              placeholder="Опиши желаемую позу..." disabled={running} rows={3}
-              className="w-full rounded-[12px] p-3 text-[13px] text-white placeholder-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] resize-none focus:border-[rgba(255,215,107,0.3)] focus:outline-none transition-colors" />
-          </div>
-        </div>
-      )}
-      <div className="px-5">
-        <Button fullWidth disabled={!canRun} onClick={run}>
-          <IconZap size={16} />{running ? (stage || 'Генерация...') : 'Изменить позу'}
-        </Button>
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-1.5">$0.10 за генерацию</p>
-        {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
-      </div>
-      <ToolInfo text={subMode === 'ref'
-        ? 'Загрузи фото модели и фото с нужной позой. Нейросеть проанализирует и воспроизведёт позу.'
-        : 'Загрузи фото модели и опиши желаемую позу. Нейросеть создаст результат на основе твоего пожелания.'} />
     </div>
   )
 }

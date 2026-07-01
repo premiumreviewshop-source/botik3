@@ -12,7 +12,7 @@ import ModelVideoTab from './ModelVideoTab'
 import ModelCaptionsTab from './ModelCaptionsTab'
 import ModelSpooferTab from './ModelSpooferTab'
 import {
-  ToolSelector, ExpressionTool, OutfitTool, PhotoEditTool, PoseTool, CreatePhotoTool, CarouselTool,
+  ToolSelector, OutfitTool, PhotoEditTool, CreatePhotoTool, CarouselTool,
   type ToolType,
 } from './ModelEditTools'
 import api from '../../api/client'
@@ -24,10 +24,6 @@ import { stripExif } from '../../lib/imageClean'
 // ── Prompts ──────────────────────────────────────────────────────────────────
 
 const PROMPT_FACESWAP = `Replace the woman in the second reference image with the woman from the first reference image. The first image is the identity reference and must be strictly preserved: keep her face, body shape, exact proportions, and silhouette unchanged. Do not modify anatomy, do not stretch or resize body parts. Use the outfit from the second reference image. The clothing, styling, and fit must match the second image exactly. Transfer the woman from the first image into the pose of the second image, matching body position precisely while keeping original proportions. The second image defines the environment: keep the same background, camera angle, framing, perspective, and composition. Match the lighting from the second image exactly: same light direction, intensity, shadows, highlights, and color grading. Match the image quality of the second photo: same resolution, sharpness, noise level, skin detail, lens characteristics, and overall realism. Do not enhance or degrade quality — replicate it exactly. Ensure seamless blending into the scene with correct depth and perspective. No stylization, no reinterpretation, no body reshaping. Photorealistic, natural result good quality, delete tattoo on hand, no text`
-
-const PROMPT_UNDRESS = `(completely nude:1.45), (fully naked:1.4), (plump vulva:1.3), (full puffy labia:1.3), (highly detailed pussy:1.35), masterpiece, best quality, ultra-detailed 8k photorealistic raw photo, professional studio photography, extremely sharp focus, A beautiful young woman in the exact same pose, body position, hand placement, head angle and camera angle as in the reference image, completely nude, fully naked, bare skin everywhere, no clothes at all, no clothing, no underwear, no fabric, no textile on body, clothing completely removed, perfect flawless porcelain skin, smooth airbrushed skin, zero imperfections, no moles, no birthmarks, no freckles, no blemishes, no acne, no scars, no stretch marks, no veins, perfectly even skin tone, subtle realistic skin pores only, voluptuous model-like breasts, fuller voluminous breasts, firm perky and elastic breasts with beautiful natural round shape and soft natural sag, highly detailed realistic nipples, puffy erect nipples, perfectly shaped detailed areolas, highly detailed intimate parts, plump and voluminous vulva, fuller puffy labia, slightly enhanced and firm intimate area, beautifully shaped pussy with realistic texture, delicate but plump folds, perfect anatomical correctness, high-resolution intimate details, visible clitoris, naturally plump and aesthetic genital area, no blurry genitals, no low detail pussy, firm and toned intimate skin, seductive feminine body, elegant slim waist, toned flat stomach, beautiful hip lines and curves, exact same lighting and shadows as in the reference image, soft natural side lighting, cinematic volumetric light, gentle shadows emphasizing body curves, extremely detailed skin texture, realistic micro-details, sharp focus on breasts and intimate areas, depth of field, 85mm lens, f/1.8, shot on Sony A7R IV, natural color grading, sensual elegant atmosphere`
-
-const PROMPT_BOTH = `Use the woman from the first reference image as the absolute identity source. Strictly preserve her exact face, facial features, bone structure, skin texture, eye shape, nose, lips, jawline, body shape, exact proportions, silhouette, limb lengths, shoulder width, waist-to-hip ratio, breast size and shape, hand size, and overall anatomy without any modification, stretching, resizing or reshaping. Perform precise face-swap and full body identity transfer from the first reference image. Transfer this woman into the exact pose, body position, hand placement, head angle and camera angle of the second reference image. Use the environment, background, framing, perspective, composition, lighting direction, intensity, shadows, highlights, color grading, resolution, sharpness, noise level, skin detail and lens characteristics exactly from the second reference image. Match the second image quality completely. Remove all clothing from the second reference image and make her completely nude while keeping perfect identity from the first image: (completely nude:1.45), (fully naked:1.4), (plump vulva:1.3), (full puffy labia:1.3), (highly detailed pussy:1.35), masterpiece, best quality, ultra-detailed 8k photorealistic raw photo, professional studio photography, extremely sharp focus, A beautiful young woman in the exact same pose, body position, hand placement, head angle and camera angle as in the reference image, completely nude, fully naked, bare skin everywhere, no clothes at all, no clothing, no underwear, no fabric, no textile on body, clothing completely removed, perfect flawless porcelain skin, smooth airbrushed skin, zero imperfections, no moles, no birthmarks, no freckles, no blemishes, no acne, no scars, no stretch marks, no veins, perfectly even skin tone, subtle realistic skin pores only, extremely smooth flawless skin, velvet smooth body texture, minimal digital noise, clean high quality rendering, smooth genital skin, perfectly smooth genital area, silky smooth flawless intimate skin, ultra smooth high quality vulva and labia, supremely smooth and refined intimate texture, voluptuous model-like breasts, fuller voluminous breasts, firm perky and elastic breasts with beautiful natural round shape and soft natural sag, highly detailed realistic nipples, puffy erect nipples, perfectly shaped detailed areolas, natural soft pink nipples, gentle rosy pink color, realistic natural pink areolas and nipples, bright vivid pink nipples, vibrant bright pink nipples, intense natural bright rosy pink color, always bright pink nipples, fixed bright pink nipples, razor sharp well-defined nipples, crystal clear nipple texture and edges, prominent visible nipples, always clearly visible nipples, fixed natural pink nipples, fixed puffy erect nipple shape, never disappearing nipples, ultra sharp crystal clear focus on nipples and intimate areas, extreme high resolution intimate details, highly detailed intimate parts, plump and voluminous vulva, fuller puffy labia, slightly enhanced and firm intimate area, beautifully shaped pussy with realistic texture, delicate but plump folds, perfect anatomical correctness, high-resolution intimate details, visible clitoris, naturally plump and aesthetic genital area, natural standard slit pussy with clear vaginal opening, fixed natural pussy shape with defined labia and slit, no blurry genitals, no low detail pussy, firm and toned intimate skin, seductive feminine body, elegant slim waist, toned flat stomach, beautiful hip lines and curves, exact same lighting and shadows as in the reference image, soft natural side lighting, cinematic volumetric light, gentle shadows emphasizing body curves, extremely detailed skin texture, realistic micro-details, sharp focus on breasts and intimate areas, depth of field, 85mm lens, f/1.8, shot on Sony A7R IV, natural color grading, sensual elegant atmosphere, delete tattoo on hand, no text`
 
 // ── Upload helper ─────────────────────────────────────────────────────────────
 
@@ -73,8 +69,6 @@ const BORDER: Record<Status, string> = {
 
 const CLASSIC_LABELS: Record<string, string> = {
   faceswap: 'FaceSwap',
-  nude: 'NSFW',
-  faceswap_nude: 'Swap + NSFW',
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -158,8 +152,8 @@ export default function ModelDetail() {
   const readyGallery = reversedGallery.filter(g => g.status !== 'processing' && g.status !== 'carousel' && g.url)
   const modelPhoto = model.previewUrl ?? ''
   const canFaceSwap = !!modelPhoto && !modelPhoto.toLowerCase().includes('.safetensors')
-  const needsModelPhoto = selectedTool !== 'nude'
-  const isClassicTool = selectedTool === 'faceswap' || selectedTool === 'nude' || selectedTool === 'faceswap_nude'
+  const needsModelPhoto = true
+  const isClassicTool = selectedTool === 'faceswap'
 
   const addFiles = (files: File[]) => {
     const items: PhotoItem[] = files
@@ -252,9 +246,7 @@ export default function ModelDetail() {
     if (needsModelPhoto && !canFaceSwap) return
     setRunning(true)
 
-    const prompt = selectedTool === 'faceswap' ? PROMPT_FACESWAP
-      : selectedTool === 'nude' ? PROMPT_UNDRESS
-      : PROMPT_BOTH
+    const prompt = PROMPT_FACESWAP
 
     // Submit all photos in parallel — background cron handles completion
     const newPlaceholders: GeneratedPhoto[] = []
@@ -265,11 +257,7 @@ export default function ModelDetail() {
         const uploadedUrl = await uploadForSwap(photo.file)
         updatePhoto(photo.id, { status: 'processing' })
 
-        const imageUrls = selectedTool === 'nude'
-          ? [uploadedUrl]
-          : [modelPhoto, uploadedUrl]
-
-        const job = await api.generate.start({ prompt, modelId: model.id, imageUrls })
+        const job = await api.generate.start({ prompt, modelId: model.id, imageUrls: [modelPhoto, uploadedUrl] })
 
         newPlaceholders.push({
           id: job.id,
@@ -448,9 +436,7 @@ export default function ModelDetail() {
 
       {/* ── New tools ── */}
       {selectedTool === 'carousel'   && <CarouselTool    model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
-      {selectedTool === 'expression' && <ExpressionTool  model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
       {selectedTool === 'outfit'     && <OutfitTool      model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
-      {selectedTool === 'changePose' && <PoseTool        model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
       {selectedTool === 'pose'       && <PhotoEditTool   model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
       {selectedTool === 'create'     && <CreatePhotoTool model={model} onNewGen={addToGallery} gallery={readyGallery.map(g => g.url).filter(Boolean)} />}
 
