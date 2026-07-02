@@ -43,61 +43,69 @@ function previewSrc(value: PhotoValue): string | null {
 // ── Tool icons ─────────────────────────────────────────────────────────────────
 
 function ToolIcon({ id, color, size = 16 }: { id: ToolType; color: string; size?: number }) {
-  const s = { stroke: color, strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' }
+  const s = { stroke: color, strokeWidth: 1.65, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' }
+  // faceswap — person head + circular swap arrow
   if (id === 'faceswap') return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="9" cy="9" r="4" {...s} />
-      <circle cx="16" cy="15" r="4" {...s} />
-      <path d="M5.5 9c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5" {...s} strokeOpacity={0.4} />
-      <path d="M19.5 15c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5" {...s} strokeOpacity={0.4} />
+      <circle cx="12" cy="8" r="3.8" {...s} />
+      <path d="M5.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6" {...s} />
+      <path d="M17 4.5c1.5.8 2.5 2.3 2.5 4" {...s} strokeOpacity={0.45} />
+      <path d="M19.5 8.5l-.5-2 2-.5" {...s} strokeOpacity={0.45} />
     </svg>
   )
-  if (id === 'outfit') return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path d="M8.5 3L6 6l-4 2 2.5 2.5L4 20h16l-.5-9.5L22 8l-4-2-2.5-3" {...s} />
-      <path d="M8.5 3Q10 5 12 5t3.5-2" {...s} />
-    </svg>
-  )
-  if (id === 'pose') return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="3" width="18" height="14" rx="2.5" {...s} />
-      <path d="M3 17l5-5 4 3 3.5-4.5L21 17" {...s} strokeOpacity={0.45} />
-      <path d="M8 21h8M12 17v4" {...s} />
-      <path d="M13.5 8l2.5 2.5-5.5 5.5-3 .5.5-3L13.5 8z" {...s} />
-    </svg>
-  )
+  // carousel — stack of 3 photo cards
   if (id === 'carousel') return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="5" y="4" width="14" height="16" rx="2" {...s} />
-      <path d="M2 7v10M22 7v10" {...s} strokeOpacity={0.4} />
-      <path d="M8 10h8M8 14h5" {...s} strokeOpacity={0.55} />
+      <rect x="7" y="6" width="13" height="15" rx="2" {...s} strokeOpacity={0.3} />
+      <rect x="4" y="4" width="13" height="15" rx="2" {...s} strokeOpacity={0.55} />
+      <rect x="1" y="2" width="13" height="15" rx="2" {...s} />
+      <path d="M4 8l3 3 2.5-3 3 4" {...s} strokeOpacity={0.55} />
     </svg>
   )
+  // outfit — clothes hanger
+  if (id === 'outfit') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12 4a2 2 0 0 1 2 2c0 .9-.5 1.6-1.2 2L20 13H4l7.2-5C10.5 7.6 10 6.9 10 6a2 2 0 0 1 2-2z" {...s} />
+      <path d="M4 13v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6" {...s} />
+    </svg>
+  )
+  // pose/editor — sliders (photo editing controls)
+  if (id === 'pose') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <line x1="4" y1="6" x2="20" y2="6" {...s} />
+      <line x1="4" y1="12" x2="20" y2="12" {...s} />
+      <line x1="4" y1="18" x2="20" y2="18" {...s} />
+      <circle cx="8" cy="6" r="2" {...s} />
+      <circle cx="16" cy="12" r="2" {...s} />
+      <circle cx="10" cy="18" r="2" {...s} />
+    </svg>
+  )
+  // create — person silhouette inside a photo frame
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path d="M12 3v2M12 19v2M3 12h2M19 12h2" {...s} strokeOpacity={0.5} />
-      <circle cx="12" cy="12" r="4" {...s} />
-      <circle cx="12" cy="12" r="1.5" fill={color} stroke="none" opacity={0.7} />
+      <rect x="2" y="3" width="20" height="16" rx="2.5" {...s} />
+      <circle cx="12" cy="9.5" r="2.8" {...s} />
+      <path d="M6 19c0-3 2.7-5 6-5s6 2 6 5" {...s} />
     </svg>
   )
 }
 
 // ── Tool definitions ───────────────────────────────────────────────────────────
 
-export const TOOLS: { id: ToolType; label: string; desc: string; longDesc: string; color: string; isNew?: boolean }[] = [
-  { id: 'faceswap',      label: 'FaceSwap',  color: '#00ffaa',
+export const TOOLS: { id: ToolType; label: string; desc: string; longDesc: string; color: string }[] = [
+  { id: 'faceswap',  label: 'FaceSwap',        color: '#00ffaa',
     desc: 'Вставь лицо модели в любое фото',
     longDesc: 'Накладывает лицо твоей модели на любое фото. Естественное освещение и текстура кожи сохраняются — контент без фотосессий.' },
-  { id: 'carousel',      label: 'Карусель',  color: '#ff6b9d', isNew: true,
+  { id: 'carousel',  label: 'Карусель',         color: '#ff6b9d',
     desc: 'Несколько поз из одного фото',
     longDesc: 'Из одного фото нейросеть создаёт несколько уникальных поз. Загрузи фото, выбери количество — получи готовую карусель для постов.' },
-  { id: 'outfit',        label: 'Одежда',    color: '#c084fc', isNew: true,
+  { id: 'outfit',    label: 'Одежда',           color: '#c084fc',
     desc: 'Замени одежду по фото-референсу',
     longDesc: 'Переносит одежду с любого референса на модель. Лицо, тело и поза остаются — меняется только одежда.' },
-  { id: 'pose',          label: 'Редактор',  color: '#6bffd9', isNew: true,
+  { id: 'pose',      label: 'Редактор',         color: '#6bffd9',
     desc: 'Редактируй фото своими промптами',
     longDesc: 'Точное управление через текст: меняй детали, добавляй объекты, изменяй фон. Полный контроль над каждым элементом.' },
-  { id: 'create',        label: 'Внедрить модель', color: '#a78bfa', isNew: true,
+  { id: 'create',    label: 'Внедрить модель',  color: '#a78bfa',
     desc: 'Внедри модель в любой референс',
     longDesc: 'Берёт фото модели и референс — внедряет твою модель в сцену референса, сохраняя позу, окружение и стиль.' },
 ]
@@ -127,7 +135,6 @@ export function ToolSelector({ selected, onSelect }: { selected: ToolType; onSel
         <div className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-[15px] font-black leading-none text-white">{tool.label}</span>
-            {tool.isNew && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.5)]">NEW</span>}
           </div>
           <p className="text-[11px] text-[rgba(255,255,255,0.32)] leading-tight mt-1 truncate">{tool.desc}</p>
         </div>
@@ -153,7 +160,6 @@ export function ToolSelector({ selected, onSelect }: { selected: ToolType; onSel
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[13px] font-black text-white">{t.label}</span>
-                  {t.isNew && <span className="text-[7px] font-black px-1 py-0.5 rounded-full uppercase tracking-wide bg-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.4)]">NEW</span>}
                 </div>
                 <p className="text-[10px] text-[rgba(255,255,255,0.28)] leading-tight truncate">{t.desc}</p>
               </div>
