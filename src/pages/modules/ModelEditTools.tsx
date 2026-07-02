@@ -294,8 +294,8 @@ type PhotoModelChoice = 'nb' | 'wan'
 
 function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onChange: (v: PhotoModelChoice) => void }) {
   const opts = [
-    { id: 'nb' as const, name: 'Nano Banana', desc: 'Качественный · реалистичный' },
-    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Интим-контент · работает хорошо' },
+    { id: 'nb' as const, name: 'Nano Banana', desc: 'Качественный · реалистичный', color: '#ffd96b' },
+    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Интим-контент · работает хорошо', color: '#6bffd9' },
   ]
   return (
     <div className="flex gap-2 mt-3">
@@ -305,10 +305,10 @@ function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onCh
           <button key={o.id} onClick={() => onChange(o.id)}
             className="flex-1 flex flex-col gap-1 px-3 py-2.5 rounded-[13px] border transition-all active:scale-[0.97] text-left"
             style={{
-              background: active ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)',
-              borderColor: active ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
+              background: active ? `${o.color}14` : 'rgba(255,255,255,0.02)',
+              borderColor: active ? `${o.color}50` : 'rgba(255,255,255,0.06)',
             }}>
-            <span className="text-[12px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,0.5)' }}>{o.name}</span>
+            <span className="text-[12px] font-black" style={{ color: active ? o.color : 'rgba(255,255,255,0.5)' }}>{o.name}</span>
             <p className="text-[9px] leading-tight" style={{ color: 'rgba(255,255,255,0.25)' }}>{o.desc}</p>
           </button>
         )
