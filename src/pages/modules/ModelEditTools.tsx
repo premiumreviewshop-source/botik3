@@ -292,10 +292,13 @@ interface EditToolProps { model: AIModel; onNewGen: (g: GeneratedPhoto) => void;
 
 type PhotoModelChoice = 'nb' | 'wan'
 
-function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onChange: (v: PhotoModelChoice) => void }) {
+function PhotoModelSelector({ value, onChange, nbPrice, wanPrice }: {
+  value: PhotoModelChoice; onChange: (v: PhotoModelChoice) => void
+  nbPrice: string; wanPrice: string
+}) {
   const opts = [
-    { id: 'nb' as const, name: 'Nano Banana', desc: 'Качественный · реалистичный', color: '#ffd96b' },
-    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Интим-контент · работает хорошо', color: '#6bffd9' },
+    { id: 'nb' as const, name: 'Nano Banana', desc: 'Качественный · реалистичный', color: '#ffd96b', price: nbPrice },
+    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Интим-контент · работает хорошо', color: '#6bffd9', price: wanPrice },
   ]
   return (
     <div className="flex gap-2 mt-3">
@@ -308,7 +311,10 @@ function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onCh
               background: active ? `${o.color}14` : 'rgba(255,255,255,0.02)',
               borderColor: active ? `${o.color}50` : 'rgba(255,255,255,0.06)',
             }}>
-            <span className="text-[12px] font-black" style={{ color: active ? o.color : 'rgba(255,255,255,0.5)' }}>{o.name}</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-black" style={{ color: active ? o.color : 'rgba(255,255,255,0.5)' }}>{o.name}</span>
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: active ? `${o.color}20` : 'rgba(255,255,255,0.06)', color: active ? o.color : 'rgba(255,255,255,0.35)' }}>{o.price}</span>
+            </div>
             <p className="text-[9px] leading-tight" style={{ color: 'rgba(255,255,255,0.25)' }}>{o.desc}</p>
           </button>
         )
@@ -412,8 +418,7 @@ export function OutfitTool({ model, onNewGen, gallery }: EditToolProps) {
         <Button fullWidth disabled={!modelPhoto || !outfitPhoto || running} onClick={run}>
           <IconZap size={16} />{running ? (stage || 'Генерация...') : 'Сменить одежду'}
         </Button>
-        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">{photoModel === 'nb' ? '$0.22' : '$0.125'} за генерацию</p>
+        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} nbPrice="$0.22" wanPrice="$0.125" />
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
       <ToolInfo text="Загрузи фото модели и фото с нужной одеждой. Нейросеть перенесёт одежду, сохранив лицо, тело и позу." />
@@ -550,7 +555,7 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
         <Button fullWidth disabled={!modelPhoto || !refPhoto || running || !countStr || count < 1} onClick={run}>
           <IconZap size={16} />{running ? (stage || 'Генерация...') : `Создать карусель (${count} фото)`}
         </Button>
-        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
+        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} nbPrice="$0.325" wanPrice="$0.25" />
         <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">
           {photoModel === 'wan' ? `$0.25 × ${count} = $${(0.25 * count).toFixed(2)}` : `$0.325 × ${count} = $${(0.325 * count).toFixed(2)}`} за {count} фото
         </p>
@@ -709,10 +714,7 @@ export function PhotoEditTool({ model, onNewGen, gallery }: EditToolProps) {
           <IconZap size={16} />
           {running ? 'Генерация...' : count > 1 ? `Изменить (${count} фото)` : 'Изменить фото'}
         </Button>
-        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">
-          {photoModel === 'nb' ? `$0.20 × ${count} = $${(0.20 * count).toFixed(2)}` : `$0.125 × ${count} = $${(0.125 * count).toFixed(2)}`}
-        </p>
+        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} nbPrice="$0.20" wanPrice="$0.125" />
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
       <ToolInfo text="Загрузи фото модели и опиши что изменить. Для каждого варианта можно прикрепить референс-фото или выбрать из хранилища. Все варианты генерируются одновременно." />
@@ -753,8 +755,7 @@ export function CreatePhotoTool({ model, onNewGen, gallery }: EditToolProps) {
         <Button fullWidth disabled={!modelPhoto || !refPhoto || running} onClick={run}>
           <IconZap size={16} />{running ? (stage || 'Генерация...') : 'Создать новое фото'}
         </Button>
-        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
-        <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">{photoModel === 'nb' ? '$0.30' : '$0.15'} за генерацию</p>
+        <PhotoModelSelector value={photoModel} onChange={setPhotoModel} nbPrice="$0.30" wanPrice="$0.15" />
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
       <ToolInfo text="Загрузи фото модели и референс. Нейросеть реплицирует сцену с твоей моделью." />
