@@ -119,19 +119,19 @@ export function ToolSelector({ selected, onSelect }: { selected: ToolType; onSel
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[20px] border transition-all active:scale-[0.97]"
-        style={{ background: '#0a0a0a', borderColor: open ? `${tool.color}45` : 'rgba(255,255,255,0.08)', boxShadow: open ? `0 0 28px ${tool.color}0d` : 'none' }}>
+        style={{ background: '#0a0a0a', borderColor: open ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)' }}>
         <div className="w-11 h-11 rounded-[14px] flex items-center justify-center flex-shrink-0"
-          style={{ background: `${tool.color}18`, border: `1px solid ${tool.color}28` }}>
-          <ToolIcon id={tool.id} color={tool.color} size={22} />
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <ToolIcon id={tool.id} color="rgba(255,255,255,0.85)" size={22} />
         </div>
         <div className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[15px] font-black leading-none" style={{ color: tool.color }}>{tool.label}</span>
-            {tool.isNew && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide" style={{ background: `${tool.color}22`, color: tool.color }}>NEW</span>}
+            <span className="text-[15px] font-black leading-none text-white">{tool.label}</span>
+            {tool.isNew && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.5)]">NEW</span>}
           </div>
-          <p className="text-[11px] text-[rgba(255,255,255,0.35)] leading-tight mt-1 truncate">{tool.desc}</p>
+          <p className="text-[11px] text-[rgba(255,255,255,0.32)] leading-tight mt-1 truncate">{tool.desc}</p>
         </div>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="2.5" strokeLinecap="round"
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" strokeLinecap="round"
           style={{ transition: 'transform 0.22s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
           <polyline points="6 9 12 15 18 9"/>
         </svg>
@@ -139,23 +139,23 @@ export function ToolSelector({ selected, onSelect }: { selected: ToolType; onSel
 
       {/* Dropdown — opens downward */}
       {open && (
-        <div className="mt-1.5 flex flex-col gap-1 rounded-[18px] overflow-hidden"
+        <div className="mt-1.5 flex flex-col rounded-[18px] overflow-hidden"
           style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.07)', animation: 'toolCarpet 0.22s cubic-bezier(0.34,1.1,0.64,1) both' }}>
           {TOOLS.filter(t => t.id !== selected).map((t, i) => (
             <button key={t.id}
               onClick={() => { onSelect(t.id); setOpen(false) }}
-              className="flex items-center gap-3 px-4 py-3 text-left transition-all active:scale-[0.98]"
+              className="flex items-center gap-3 px-4 py-3.5 text-left transition-all active:bg-[rgba(255,255,255,0.04)]"
               style={{ animation: `toolFadeIn 0.18s ease ${i * 0.04}s both`, borderBottom: i < TOOLS.length - 2 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
               <div className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"
-                style={{ background: `${t.color}14`, border: `1px solid ${t.color}22` }}>
-                <ToolIcon id={t.id} color={t.color} size={17} />
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                <ToolIcon id={t.id} color="rgba(255,255,255,0.65)" size={17} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[13px] font-black" style={{ color: t.color }}>{t.label}</span>
-                  {t.isNew && <span className="text-[7px] font-black px-1 py-0.5 rounded-full uppercase tracking-wide" style={{ background: `${t.color}20`, color: t.color }}>NEW</span>}
+                  <span className="text-[13px] font-black text-white">{t.label}</span>
+                  {t.isNew && <span className="text-[7px] font-black px-1 py-0.5 rounded-full uppercase tracking-wide bg-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.4)]">NEW</span>}
                 </div>
-                <p className="text-[10px] text-[rgba(255,255,255,0.3)] leading-tight truncate">{t.desc}</p>
+                <p className="text-[10px] text-[rgba(255,255,255,0.28)] leading-tight truncate">{t.desc}</p>
               </div>
             </button>
           ))}
@@ -288,8 +288,8 @@ type PhotoModelChoice = 'nb' | 'wan'
 
 function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onChange: (v: PhotoModelChoice) => void }) {
   const opts = [
-    { id: 'nb' as const, name: 'Nano Banana', desc: 'Качественный · реалистичный', color: '#ffd96b' },
-    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Интим-контент · работает хорошо', color: '#6bffd9' },
+    { id: 'nb' as const, name: 'Nano Banana', desc: 'Качественный · реалистичный' },
+    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Интим-контент · работает хорошо' },
   ]
   return (
     <div className="flex gap-2 mt-3">
@@ -299,10 +299,10 @@ function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onCh
           <button key={o.id} onClick={() => onChange(o.id)}
             className="flex-1 flex flex-col gap-1 px-3 py-2.5 rounded-[13px] border transition-all active:scale-[0.97] text-left"
             style={{
-              background: active ? `${o.color}10` : 'rgba(255,255,255,0.02)',
-              borderColor: active ? `${o.color}40` : 'rgba(255,255,255,0.07)',
+              background: active ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)',
+              borderColor: active ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
             }}>
-            <span className="text-[12px] font-black" style={{ color: active ? o.color : 'rgba(255,255,255,0.65)' }}>{o.name}</span>
+            <span className="text-[12px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,0.5)' }}>{o.name}</span>
             <p className="text-[9px] leading-tight" style={{ color: 'rgba(255,255,255,0.25)' }}>{o.desc}</p>
           </button>
         )

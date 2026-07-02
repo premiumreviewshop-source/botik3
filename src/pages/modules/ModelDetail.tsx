@@ -562,20 +562,20 @@ export default function ModelDetail() {
           {/* NB / WAN model selector */}
           <div className="flex gap-2 mt-3">
             {([
-              { id: 'nb' as const, name: 'Nano Banana', desc: 'Быстрее · стиль', price: '$0.20', color: '#ffd96b' },
-              { id: 'wan' as const, name: 'WAN 2.7', desc: 'Качество · реализм', price: '$0.125', color: '#6bffd9' },
+              { id: 'nb' as const, name: 'Nano Banana', desc: 'Качественный · реалистичный', price: '$0.20' },
+              { id: 'wan' as const, name: 'WAN 2.7', desc: 'Интим-контент · работает хорошо', price: '$0.125' },
             ]).map(o => {
               const active = photoModel === o.id
               return (
                 <button key={o.id} onClick={() => setPhotoModel(o.id)} disabled={running}
                   className="flex-1 flex flex-col gap-1 px-3 py-2.5 rounded-[13px] border transition-all active:scale-[0.97] text-left"
                   style={{
-                    background: active ? `${o.color}10` : 'rgba(255,255,255,0.02)',
-                    borderColor: active ? `${o.color}40` : 'rgba(255,255,255,0.07)',
+                    background: active ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)',
+                    borderColor: active ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
                   }}>
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-black" style={{ color: active ? o.color : 'rgba(255,255,255,0.65)' }}>{o.name}</span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: active ? `${o.color}18` : 'rgba(255,255,255,0.05)', color: active ? o.color : 'rgba(255,255,255,0.28)' }}>{o.price}</span>
+                    <span className="text-[12px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,0.5)' }}>{o.name}</span>
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[rgba(255,255,255,0.07)] text-[rgba(255,255,255,0.4)]">{o.price}</span>
                   </div>
                   <p className="text-[9px] leading-tight" style={{ color: 'rgba(255,255,255,0.25)' }}>{o.desc}</p>
                 </button>
