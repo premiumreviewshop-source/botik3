@@ -6,7 +6,6 @@ import { checkAndDeduct } from '../_shared/balance.ts'
 const WAVESPEED_BASE = () => Deno.env.get('WAVESPEED_BASE_URL') ?? 'https://api.wavespeed.ai/api/v3'
 const NB_ID = 'google/nano-banana-pro/edit'
 const WAN_ID = () => Deno.env.get('WAN_MODEL_ID') ?? 'alibaba/wan-2.7/image-edit-pro'
-const COST_PER_PHOTO = 0.325
 
 async function wsStart(key: string, model: string, images: string[], prompt: string): Promise<string> {
   const resp = await fetch(`${WAVESPEED_BASE()}/${model}`, {
@@ -39,7 +38,9 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await req.json()
     const { modelUrl, refUrl, nanoBananaPrompt, count, modelId, modelPreviewUrl, initData, model } = body
-    const stage1Model = model === 'wan' ? WAN_ID() : NB_ID
+    const useWAN = model === 'wan'
+    const stage1Model = useWAN ? WAN_ID() : NB_ID
+    const COST_PER_PHOTO = useWAN ? 0.25 : 0.325
 
     if (!modelUrl || !refUrl || !nanoBananaPrompt || !count || !modelId)
       return respond({ error: 'Missing required fields' }, 400)

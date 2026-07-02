@@ -105,27 +105,62 @@ export const TOOLS: { id: ToolType; label: string; desc: string; longDesc: strin
 // ── Tool Selector: active card + bottom sheet picker ──────────────────────────
 
 export function ToolSelector({ selected, onSelect }: { selected: ToolType; onSelect: (t: ToolType) => void }) {
+  const [open, setOpen] = useState(false)
+  const tool = TOOLS.find(t => t.id === selected)!
+
   return (
     <div className="px-4">
-      <style>{`@keyframes toolCarpet{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div className="flex gap-1 p-1 rounded-[16px] overflow-x-auto" style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.06)', scrollbarWidth: 'none' }}>
-        {TOOLS.map(t => {
-          const active = t.id === selected
-          return (
-            <button key={t.id} onClick={() => onSelect(t.id)}
-              className="flex-shrink-0 flex flex-col items-center gap-1 py-2 px-2.5 rounded-[11px] transition-all active:scale-[0.93]"
-              style={{
-                background: active ? `${t.color}14` : 'transparent',
-                border: `1px solid ${active ? t.color + '38' : 'transparent'}`,
-                minWidth: 56,
-              }}>
-              <ToolIcon id={t.id} color={active ? t.color : 'rgba(255,255,255,0.28)'} size={17} />
-              <span className="text-[9px] font-black leading-none text-center whitespace-nowrap"
-                style={{ color: active ? t.color : 'rgba(255,255,255,0.28)' }}>{t.label}</span>
+      <style>{`
+        @keyframes toolCarpet{from{opacity:0;transform:translateY(-8px) scaleY(0.95);transform-origin:top}to{opacity:1;transform:translateY(0) scaleY(1)}}
+        @keyframes toolFadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+      `}</style>
+
+      {/* Active tool — big card */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-[20px] border transition-all active:scale-[0.97]"
+        style={{ background: '#0a0a0a', borderColor: open ? `${tool.color}45` : 'rgba(255,255,255,0.08)', boxShadow: open ? `0 0 28px ${tool.color}0d` : 'none' }}>
+        <div className="w-11 h-11 rounded-[14px] flex items-center justify-center flex-shrink-0"
+          style={{ background: `${tool.color}18`, border: `1px solid ${tool.color}28` }}>
+          <ToolIcon id={tool.id} color={tool.color} size={22} />
+        </div>
+        <div className="flex-1 text-left min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[15px] font-black leading-none" style={{ color: tool.color }}>{tool.label}</span>
+            {tool.isNew && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide" style={{ background: `${tool.color}22`, color: tool.color }}>NEW</span>}
+          </div>
+          <p className="text-[11px] text-[rgba(255,255,255,0.35)] leading-tight mt-1 truncate">{tool.desc}</p>
+        </div>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="2.5" strokeLinecap="round"
+          style={{ transition: 'transform 0.22s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {/* Dropdown — opens downward */}
+      {open && (
+        <div className="mt-1.5 flex flex-col gap-1 rounded-[18px] overflow-hidden"
+          style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.07)', animation: 'toolCarpet 0.22s cubic-bezier(0.34,1.1,0.64,1) both' }}>
+          {TOOLS.filter(t => t.id !== selected).map((t, i) => (
+            <button key={t.id}
+              onClick={() => { onSelect(t.id); setOpen(false) }}
+              className="flex items-center gap-3 px-4 py-3 text-left transition-all active:scale-[0.98]"
+              style={{ animation: `toolFadeIn 0.18s ease ${i * 0.04}s both`, borderBottom: i < TOOLS.length - 2 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+              <div className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"
+                style={{ background: `${t.color}14`, border: `1px solid ${t.color}22` }}>
+                <ToolIcon id={t.id} color={t.color} size={17} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-black" style={{ color: t.color }}>{t.label}</span>
+                  {t.isNew && <span className="text-[7px] font-black px-1 py-0.5 rounded-full uppercase tracking-wide" style={{ background: `${t.color}20`, color: t.color }}>NEW</span>}
+                </div>
+                <p className="text-[10px] text-[rgba(255,255,255,0.3)] leading-tight truncate">{t.desc}</p>
+              </div>
             </button>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -253,8 +288,8 @@ type PhotoModelChoice = 'nb' | 'wan'
 
 function PhotoModelSelector({ value, onChange }: { value: PhotoModelChoice; onChange: (v: PhotoModelChoice) => void }) {
   const opts = [
-    { id: 'nb' as const, name: 'Nano Banana', desc: 'Быстрее · стиль', color: '#ffd96b' },
-    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Качество · реализм', color: '#6bffd9' },
+    { id: 'nb' as const, name: 'Nano Banana', desc: 'Качественный · реалистичный', color: '#ffd96b' },
+    { id: 'wan' as const, name: 'WAN 2.7', desc: 'Интим-контент · работает хорошо', color: '#6bffd9' },
   ]
   return (
     <div className="flex gap-2 mt-3">
@@ -511,7 +546,7 @@ export function CarouselTool({ model, onNewGen, gallery }: EditToolProps) {
         </Button>
         <PhotoModelSelector value={photoModel} onChange={setPhotoModel} />
         <p className="text-[10px] text-[rgba(255,255,255,0.25)] text-center mt-2">
-          $0.325 × {count} = ${(0.325 * count).toFixed(2)} за {count} фото
+          {photoModel === 'wan' ? `$0.25 × ${count} = $${(0.25 * count).toFixed(2)}` : `$0.325 × ${count} = $${(0.325 * count).toFixed(2)}`} за {count} фото
         </p>
         {err && <p className="text-[11px] text-red-400 mt-2 text-center">{err}</p>}
       </div>
